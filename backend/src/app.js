@@ -48,7 +48,30 @@ app.use('/api/wishlist', wishlistRoutes);
 import priceAlertRoutes from './modules/priceAlert/priceAlert.routes.js';
 app.use('/api/price-alerts', priceAlertRoutes);
 
-// Health Check Route
+// Root & Health Check Routes
+app.get('/', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: '🚀 ShopWise AI Backend API is live & connected!',
+    environment: process.env.NODE_ENV || 'production',
+    endpoints: {
+      products: '/api/products',
+      platformAdvisor: '/api/platform-advisor',
+      priceAlerts: '/api/price-alerts',
+      wishlist: '/api/wishlist',
+      auth: '/api/auth',
+      health: '/health'
+    }
+  });
+});
+
+app.get('/api', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'ShopWise AI API Root'
+  });
+});
+
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'success',
