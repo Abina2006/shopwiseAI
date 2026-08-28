@@ -15,9 +15,9 @@ const ACCURATE_REAL_PRODUCTS = [
     description: '35H Playtime, 13mm Drivers, Dual Mics ENx Tech, ASAP Charge (10 mins = 120 mins playback), IPX5 Water Resistance.',
     listings: [
       { sellerName: 'Meesho', price: 981.00, rating: 3.7, reviewCount: 848, sellerUrl: 'https://www.meesho.com/search?q=boat+airdopes+alpha' },
-      { sellerName: 'Flipkart', price: 999.00, rating: 4.3, reviewCount: 15420, sellerUrl: 'https://www.flipkart.com/search?q=boat+airdopes+alpha' },
-      { sellerName: 'Amazon', price: 999.00, rating: 4.4, reviewCount: 24500, sellerUrl: 'https://www.amazon.in/s?k=boat+airdopes+alpha' },
-      { sellerName: 'Croma', price: 1099.00, rating: 4.2, reviewCount: 420, sellerUrl: 'https://www.croma.com/searchB?q=boat+airdopes+alpha' }
+      { sellerName: 'Flipkart', price: 1199.00, rating: 4.3, reviewCount: 15420, sellerUrl: 'https://www.flipkart.com/search?q=boat+airdopes+alpha' },
+      { sellerName: 'Amazon', price: 1199.00, rating: 4.4, reviewCount: 24500, sellerUrl: 'https://www.amazon.in/s?k=boat+airdopes+alpha' },
+      { sellerName: 'Croma', price: 1299.00, rating: 4.2, reviewCount: 420, sellerUrl: 'https://www.croma.com/searchB?q=boat+airdopes+alpha' }
     ]
   },
   {

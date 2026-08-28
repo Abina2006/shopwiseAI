@@ -22,6 +22,12 @@ app.use(cors());
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
+// Serve static product images from /public/images
+import { fileURLToPath } from 'url';
+import path from 'path';
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+app.use('/images', express.static(path.join(__dirname, '../../public/images')));
+
 // Auth Routes
 import authRoutes from './modules/auth/auth.routes.js';
 app.use('/api/auth', authRoutes);
@@ -37,6 +43,10 @@ app.use('/api/platform-advisor', platformAdvisorRoutes);
 // Wishlist Routes
 import wishlistRoutes from './modules/wishlist/wishlist.routes.js';
 app.use('/api/wishlist', wishlistRoutes);
+
+// Price Alerts Routes
+import priceAlertRoutes from './modules/priceAlert/priceAlert.routes.js';
+app.use('/api/price-alerts', priceAlertRoutes);
 
 // Health Check Route
 app.get('/health', (req, res) => {

@@ -15,6 +15,7 @@ import AdminDashboardPage from './pages/AdminDashboardPage';
 import NotFoundPage from './pages/NotFoundPage';
 import HomePage from './pages/HomePage';
 import ProfilePage from './pages/ProfilePage';
+import PriceAlertsPage from './pages/PriceAlertsPage';
 
 function App() {
   return (
@@ -23,14 +24,35 @@ function App() {
         <Routes>
           {/* Main User Site Routes */}
           <Route path="/" element={<Layout />}>
-            <Route index element={<HomePage />} />
-            
-            <Route path="scrape" element={<ScraperPage />} />
-            <Route path="compare" element={<ComparePage />} />
+            {/* Public Auth Routes */}
             <Route path="login" element={<LoginPage />} />
             <Route path="register" element={<RegisterPage />} />
 
-            {/* User Profile Route */}
+            {/* Authenticated Gated App Pages (Home/Products, Compare, Scraper, Profile) */}
+            <Route
+              index
+              element={
+                <ProtectedRoute>
+                  <HomePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="compare"
+              element={
+                <ProtectedRoute>
+                  <ComparePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="scrape"
+              element={
+                <ProtectedRoute>
+                  <ScraperPage />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="profile"
               element={
@@ -39,17 +61,11 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            
-            {/* Gated User Routes */}
             <Route
               path="alerts"
               element={
                 <ProtectedRoute>
-                  <div className="text-white text-center py-12">
-                    <span className="text-4xl">🔔</span>
-                    <h2 className="text-2xl font-bold mt-2">Your Price Alerts</h2>
-                    <p className="text-slate-400 mt-1">Configure drop notifications for your watched products.</p>
-                  </div>
+                  <PriceAlertsPage />
                 </ProtectedRoute>
               }
             />

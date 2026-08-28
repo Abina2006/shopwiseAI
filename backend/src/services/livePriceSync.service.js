@@ -11,9 +11,9 @@ const LIVE_MARKET_REGISTRY = {
   // Audio & Earbuds
   'airdopes': {
     meesho: { price: 981.00, rating: 3.7, reviewCount: 848, url: 'https://www.meesho.com/search?q=boat+airdopes+alpha' },
-    flipkart: { price: 999.00, rating: 4.3, reviewCount: 15420, url: 'https://www.flipkart.com/search?q=boat+airdopes+alpha' },
-    amazon: { price: 999.00, rating: 4.4, reviewCount: 24500, url: 'https://www.amazon.in/s?k=boat+airdopes+alpha' },
-    croma: { price: 1099.00, rating: 4.2, reviewCount: 420, url: 'https://www.croma.com/searchB?q=boat+airdopes+alpha' }
+    flipkart: { price: 1199.00, rating: 4.3, reviewCount: 15420, url: 'https://www.flipkart.com/search?q=boat+airdopes+alpha' },
+    amazon: { price: 1199.00, rating: 4.4, reviewCount: 24500, url: 'https://www.amazon.in/s?k=boat+airdopes+alpha' },
+    croma: { price: 1299.00, rating: 4.2, reviewCount: 420, url: 'https://www.croma.com/searchB?q=boat+airdopes+alpha' }
   },
   'sony wh-1000xm5': {
     meesho: { price: 28990.00, rating: 4.5, reviewCount: 65, url: 'https://www.meesho.com/search?q=sony+wh+1000xm5' },
