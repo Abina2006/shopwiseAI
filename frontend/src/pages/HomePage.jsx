@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getProductVisual } from '../utils/productImages';
+import { sanitizeStoreUrl } from '../utils/urlHelper';
 import PriceAdvisorModal from '../components/PriceAdvisorModal';
 import PriceAlertModal from '../components/PriceAlertModal';
 import AiBudgetAdvisorWidget from '../components/AiBudgetAdvisorWidget';
@@ -337,37 +338,34 @@ function ProductCard({ product, onPriceSynced, onOpenAdvisor, onOpenAlert }) {
                       <div className="flex items-center gap-1.5">
                         <span className="font-semibold">{st.sellerName}</span>
                         {isLowest && (
-                          <span className="text-[9px] bg-emerald-500/20 text-emerald-300 font-bold px-1.5 py-0.2 rounded border border-emerald-500/30">
+                          <span className="text-[9px] bg-emerald-500/20 text-emerald-300 font-bold px-1.5 py-0.5 rounded border border-emerald-500/30">
                             BEST DEAL 🏆
                           </span>
                         )}
                       </div>
-                      <div className="flex flex-col items-end gap-0.5">
-                        <div className="flex items-center gap-2">
-                          <span className={`font-bold ${isLowest ? 'text-emerald-400' : 'text-slate-300'}`}>
-                            ₹{Number(st.price).toLocaleString('en-IN')}
-                          </span>
-                          {st.sellerUrl && (
-                            <a
-                              href={st.sellerUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className={`text-[10px] font-semibold px-1.5 py-0.5 rounded transition-colors ${
-                                isLowest
-                                  ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm'
-                                  : 'bg-slate-800 hover:bg-slate-700 text-indigo-400'
-                              }`}
-                            >
-                              Store ↗
-                            </a>
-                          )}
-                        </div>
-                        {st.lastUpdated && (
-                          <span className="text-[9px] text-slate-600">
-                            Updated: {new Date(st.lastUpdated).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                        )}
+                      <div className="flex items-center gap-1.5">
+                        <span className={`font-bold ${isLowest ? 'text-emerald-400' : 'text-slate-300'}`}>
+                          ₹{Number(st.price).toLocaleString('en-IN')}
+                        </span>
+                        <a
+                          href={sanitizeStoreUrl(st.sellerUrl, product.name, st.sellerName)}
+                          target="_blank"
+                          rel="noreferrer noopener"
+                          referrerPolicy="no-referrer"
+                          className={`text-[10px] font-semibold px-1.5 py-0.5 rounded transition-colors ${
+                            isLowest
+                              ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm'
+                              : 'bg-slate-800 hover:bg-slate-700 text-indigo-400'
+                          }`}
+                        >
+                          Store ↗
+                        </a>
                       </div>
+                      {st.lastUpdated && (
+                        <span className="text-[9px] text-slate-600">
+                          Updated: {new Date(st.lastUpdated).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' })}
+                        </span>
+                      )}
                     </div>
                   );
                 })}
@@ -413,11 +411,15 @@ function ProductCard({ product, onPriceSynced, onOpenAdvisor, onOpenAlert }) {
                     <span className="text-xs font-bold text-white">
                       ₹{Number(aiData.bestAppPrice || lowestPrice).toLocaleString('en-IN')}
                     </span>
-                    {aiData.bestAppUrl && (
-                      <a href={aiData.bestAppUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] text-emerald-400 underline font-semibold">
-                        Buy on {aiData.bestAppToBuy} ↗
-                      </a>
-                    )}
+                    <a
+                      href={sanitizeStoreUrl(aiData.bestAppUrl, product.name, aiData.bestAppToBuy)}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      referrerPolicy="no-referrer"
+                      className="text-[10px] text-emerald-400 underline font-semibold"
+                    >
+                      Buy on {aiData.bestAppToBuy} ↗
+                    </a>
                   </div>
                   <p className="text-[10px] text-slate-300 leading-tight">
                     {aiData.bestAppReason}
@@ -444,7 +446,13 @@ function ProductCard({ product, onPriceSynced, onOpenAdvisor, onOpenAlert }) {
         </div>
       </div>
 
-      <div className="p-5 pt-0">
+      <div className="p-5 pt-0 space-y-2">
+        <Link
+          to={`/product/${product.id}`}
+          className="block text-center text-xs bg-gradient-to-r from-indigo-600/20 to-purple-600/20 hover:from-indigo-600/30 hover:to-purple-600/30 text-indigo-300 hover:text-white py-2 rounded-xl border border-indigo-500/30 hover:border-indigo-400 transition-all font-bold"
+        >
+          👁️ View Full Details
+        </Link>
         <a
           href={`/compare?ids=${product.id}`}
           className="block text-center text-xs bg-slate-800 hover:bg-slate-750 text-indigo-300 hover:text-white py-2 rounded-xl border border-slate-700 transition-all font-semibold"
@@ -719,9 +727,23 @@ export default function HomePage() {
               </button>
             </div>
           ) : loading ? (
-            <div className="text-center py-20">
-              <div className="inline-block animate-spin text-3xl mb-3">⚙️</div>
-              <p className="text-indigo-400 text-sm font-medium">Loading catalog products…</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden animate-pulse">
+                  <div className="h-48 bg-slate-800" />
+                  <div className="p-5 space-y-3">
+                    <div className="h-4 bg-slate-800 rounded-lg w-4/5" />
+                    <div className="h-3 bg-slate-800 rounded-lg w-1/3" />
+                    <div className="h-6 bg-slate-800 rounded-lg w-1/2" />
+                    <div className="h-8 bg-slate-800 rounded-xl" />
+                    <div className="h-16 bg-slate-800 rounded-xl" />
+                    <div className="flex gap-2">
+                      <div className="h-8 bg-slate-800 rounded-xl flex-1" />
+                      <div className="h-8 bg-slate-800 rounded-xl flex-1" />
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : products.length === 0 ? (
             <div className="text-center py-20 px-6 border border-dashed border-slate-800 rounded-3xl bg-slate-900/40 max-w-3xl mx-auto">

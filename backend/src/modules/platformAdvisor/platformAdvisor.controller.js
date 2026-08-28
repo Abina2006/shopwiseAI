@@ -45,27 +45,33 @@ export async function getAdvice(req, res) {
 export async function getStoredAdvice(req, res) {
   try {
     const { productId } = req.params;
+    const queryId = req.query.productId || productId;
 
-    const stored = await prisma.platformRecommendation.findFirst({
-      where: { productId },
-      include: {
-        product: {
-          include: {
-            listings: true,
+    // Check if valid UUID
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(queryId);
+
+    if (isUuid) {
+      const stored = await prisma.platformRecommendation.findFirst({
+        where: { productId: queryId },
+        include: {
+          product: {
+            include: {
+              listings: true,
+            }
           }
         }
-      }
-    });
-
-    if (stored) {
-      return res.status(200).json({
-        success: true,
-        data: stored
       });
+
+      if (stored) {
+        return res.status(200).json({
+          success: true,
+          data: stored
+        });
+      }
     }
 
-    // If not stored yet, generate on the fly
-    const freshAdvice = await getPlatformRecommendation({ productId });
+    // If not stored or not UUID, generate on the fly
+    const freshAdvice = await getPlatformRecommendation({ productId: isUuid ? queryId : undefined, productName: !isUuid ? queryId : undefined });
     return res.status(200).json({
       success: true,
       data: freshAdvice

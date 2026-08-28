@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { sanitizeStoreUrl } from '../utils/urlHelper';
 
 const API = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
@@ -12,7 +13,9 @@ export default function PriceAlertsPage() {
   const [toastMsg, setToastMsg] = useState('');
   
   // New Alert Form state
+  const [alertMode, setAlertMode] = useState('catalog'); // 'catalog' | 'url'
   const [selectedProductId, setSelectedProductId] = useState('');
+  const [customProductUrl, setCustomProductUrl] = useState('');
   const [targetPrice, setTargetPrice] = useState('');
   const [notificationEmail, setNotificationEmail] = useState(user?.email || '');
   const [creating, setCreating] = useState(false);
@@ -72,10 +75,30 @@ export default function PriceAlertsPage() {
     }
   };
 
+  const handleUrlInputChange = (url) => {
+    setCustomProductUrl(url);
+    // Auto-detect if a catalog product already has this URL
+    if (url.trim()) {
+      const cleanUrl = url.toLowerCase();
+      const matched = products.find(p => 
+        (p.listings || []).some(l => (l.sellerUrl || '').toLowerCase().includes(cleanUrl.split('?')[0]))
+      );
+      if (matched && matched.listings?.[0]) {
+        setSelectedProductId(matched.id);
+        const lowest = parseFloat(matched.listings[0].price) || 1000;
+        setTargetPrice(Math.round(lowest * 0.9));
+      }
+    }
+  };
+
   const handleCreateAlert = async (e) => {
     e.preventDefault();
-    if (!selectedProductId || !targetPrice) {
+    if (alertMode === 'catalog' && (!selectedProductId || !targetPrice)) {
       setFormError('Please select a product and target price.');
+      return;
+    }
+    if (alertMode === 'url' && (!customProductUrl.trim() || !targetPrice)) {
+      setFormError('Please paste a valid Flipkart / Amazon / Store product URL and target price.');
       return;
     }
     setCreating(true);
@@ -85,7 +108,8 @@ export default function PriceAlertsPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          productId: selectedProductId,
+          productId: alertMode === 'catalog' ? selectedProductId : undefined,
+          productUrl: alertMode === 'url' ? customProductUrl.trim() : undefined,
           targetPrice: parseFloat(targetPrice),
           email: notificationEmail || user?.email,
           userId: user?.id
@@ -94,6 +118,7 @@ export default function PriceAlertsPage() {
       const json = await res.json();
       if (json.success) {
         showToast('🔔 Price drop alert activated successfully!');
+        if (alertMode === 'url') setCustomProductUrl('');
         fetchAlerts();
       } else {
         setFormError(json.message || 'Failed to activate alert.');
@@ -207,98 +232,173 @@ export default function PriceAlertsPage() {
           </div>
         </div>
 
-        {/* New Alert Creator Widget */}
-        <div className="bg-gradient-to-br from-slate-900 via-indigo-950/30 to-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl">
-          <div className="flex items-center gap-2 mb-4">
-            <span className="text-lg">⚡</span>
-            <h2 className="text-sm font-extrabold text-white uppercase tracking-wider">
-              Set a New Price Drop Alert
-            </h2>
+        {/* Single Rectangular Box with 3 Integrated Options */}
+        <div className="bg-slate-900/90 border-2 border-indigo-500/30 hover:border-indigo-500/50 rounded-2xl p-5 shadow-2xl shadow-indigo-950/40 backdrop-blur-xl transition-all">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 border-b border-slate-800 pb-3">
+            <div className="flex items-center gap-2">
+              <span className="text-amber-400 text-base">⚡</span>
+              <h2 className="text-xs font-black text-white uppercase tracking-wider">
+                Set a New Price Drop Alert
+              </h2>
+            </div>
+
+            {/* Mode Switch: Catalog vs URL Paste */}
+            <div className="flex items-center bg-slate-950/80 p-1 rounded-xl border border-slate-800 text-xs">
+              <button
+                type="button"
+                onClick={() => setAlertMode('catalog')}
+                className={`px-3 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1.5 ${
+                  alertMode === 'catalog'
+                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <span>📦</span> Pick from Catalog
+              </button>
+              <button
+                type="button"
+                onClick={() => setAlertMode('url')}
+                className={`px-3 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1.5 ${
+                  alertMode === 'url'
+                    ? 'bg-orange-500 text-slate-950 shadow-md shadow-orange-500/30'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <span>🔗</span> Paste Flipkart / Store URL
+              </button>
+            </div>
           </div>
 
           {formError && (
-            <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-xs rounded-xl p-3 mb-4">
-              ⚠️ {formError}
+            <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-xs rounded-xl p-3 mb-4 flex items-center gap-2">
+              <span>⚠️</span>
+              <span>{formError}</span>
             </div>
           )}
 
-          <form onSubmit={handleCreateAlert} className="grid sm:grid-cols-4 gap-4 items-end">
-            {/* Product Selector */}
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                Select Product from Catalog
-              </label>
-              <select
-                value={selectedProductId}
-                onChange={e => handleProductSelectChange(e.target.value)}
-                className="w-full bg-slate-800/90 border border-slate-700 text-white text-xs rounded-xl px-3.5 py-3 focus:outline-none focus:border-indigo-500 transition-colors"
-              >
-                {products.map(p => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} (Best: ₹{parseFloat(p.listings?.[0]?.price || 0).toLocaleString('en-IN')})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Target Price & Discount Presets */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                  Target Price (₹)
-                </label>
-                {selectedLowest > 0 && (
-                  <span className="text-[10px] text-emerald-400">
-                    Now: ₹{selectedLowest.toLocaleString('en-IN')}
+          {/* Unified 3-Option Rectangular Row */}
+          <form onSubmit={handleCreateAlert} className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-stretch bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80">
+              
+              {/* Option 1: Product Selection or URL Paste Input */}
+              <div className="lg:col-span-6 flex flex-col justify-center">
+                <div className="flex items-center justify-between mb-1 px-1">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                    {alertMode === 'catalog' ? '1. Select Product' : '1. Paste Product URL (Flipkart / Amazon / Meesho)'}
                   </span>
+                  {alertMode === 'url' && (
+                    <span className="text-[10px] text-amber-400 font-semibold">Flipkart & All Stores Supported</span>
+                  )}
+                </div>
+
+                {alertMode === 'catalog' ? (
+                  <select
+                    value={selectedProductId}
+                    onChange={e => handleProductSelectChange(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700/80 text-white text-xs rounded-xl px-3.5 py-3 focus:outline-none focus:border-indigo-500 font-medium transition-colors cursor-pointer"
+                  >
+                    {products.map(p => {
+                      const minP = parseFloat(p.listings?.[0]?.price || 0);
+                      return (
+                        <option key={p.id} value={p.id}>
+                          {p.name} (Best: ₹{minP.toLocaleString('en-IN')})
+                        </option>
+                      );
+                    })}
+                  </select>
+                ) : (
+                  <div className="relative">
+                    <input
+                      type="url"
+                      value={customProductUrl}
+                      onChange={e => handleUrlInputChange(e.target.value)}
+                      placeholder="https://www.flipkart.com/... or Amazon / Meesho link"
+                      className="w-full bg-slate-900 border border-orange-500/40 text-white text-xs rounded-xl pl-3.5 pr-8 py-3 focus:outline-none focus:border-orange-400 font-medium transition-colors placeholder:text-slate-500"
+                      required
+                    />
+                    {customProductUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setCustomProductUrl('')}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
-              <input
-                type="number"
-                value={targetPrice}
-                onChange={e => setTargetPrice(e.target.value)}
-                placeholder="Target Price"
-                className="w-full bg-slate-800/90 border border-slate-700 text-white text-xs font-bold rounded-xl px-3.5 py-3 focus:outline-none focus:border-amber-500 transition-colors"
-                required
-              />
+
+              {/* Option 2: Target Price (₹) Input */}
+              <div className="lg:col-span-3 flex flex-col justify-center">
+                <div className="flex items-center justify-between mb-1 px-1">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                    2. Target Price (₹)
+                  </span>
+                  {selectedLowest > 0 && alertMode === 'catalog' && (
+                    <span className="text-[10px] text-emerald-400 font-bold">
+                      Now: ₹{selectedLowest.toLocaleString('en-IN')}
+                    </span>
+                  )}
+                </div>
+                <input
+                  type="number"
+                  value={targetPrice}
+                  onChange={e => setTargetPrice(e.target.value)}
+                  placeholder="e.g. 1199"
+                  className="w-full bg-slate-900 border border-slate-700/80 text-amber-300 text-xs font-bold rounded-xl px-3.5 py-3 focus:outline-none focus:border-amber-400 transition-colors"
+                  required
+                />
+              </div>
+
+              {/* Option 3: Activate Alert CTA Action */}
+              <div className="lg:col-span-3 flex flex-col justify-end">
+                <button
+                  type="submit"
+                  disabled={creating}
+                  className="w-full h-[42px] bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs px-4 rounded-xl transition-all shadow-lg shadow-amber-500/20 disabled:opacity-50 flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer"
+                >
+                  {creating ? (
+                    <>
+                      <span className="animate-spin text-sm">⚙️</span>
+                      <span>Activating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>🔔</span>
+                      <span>Activate Alert</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
             </div>
 
-            {/* Submit Button */}
-            <div>
-              <button
-                type="submit"
-                disabled={creating}
-                className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 font-extrabold text-xs py-3 px-4 rounded-xl transition-all shadow-lg shadow-amber-500/20 disabled:opacity-50 flex items-center justify-center gap-1.5 active:scale-95"
-              >
-                {creating ? 'Activating...' : '🔔 Activate Alert'}
-              </button>
-            </div>
+            {/* Quick Preset Buttons (5%, 10%, 15%, 20% Off) */}
+            {selectedLowest > 0 && alertMode === 'catalog' && (
+              <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-400 pt-1">
+                <span className="font-semibold text-slate-500">Quick Target:</span>
+                {[
+                  { label: '5% Off', pct: 0.95 },
+                  { label: '10% Off', pct: 0.90 },
+                  { label: '15% Off', pct: 0.85 },
+                  { label: '20% Off', pct: 0.80 }
+                ].map(preset => {
+                  const targetVal = Math.round(selectedLowest * preset.pct);
+                  return (
+                    <button
+                      key={preset.label}
+                      type="button"
+                      onClick={() => setTargetPrice(targetVal)}
+                      className="bg-slate-800/80 hover:bg-slate-750 text-indigo-300 border border-slate-700/60 px-2.5 py-1 rounded-lg transition-colors font-bold text-[11px]"
+                    >
+                      {preset.label} (₹{targetVal.toLocaleString('en-IN')})
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </form>
-
-          {/* Quick Preset Buttons */}
-          {selectedLowest > 0 && (
-            <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
-              <span>Quick Target:</span>
-              {[
-                { label: '5% Off', pct: 0.95 },
-                { label: '10% Off', pct: 0.90 },
-                { label: '15% Off', pct: 0.85 },
-                { label: '20% Off', pct: 0.80 }
-              ].map(preset => {
-                const targetVal = Math.round(selectedLowest * preset.pct);
-                return (
-                  <button
-                    key={preset.label}
-                    type="button"
-                    onClick={() => setTargetPrice(targetVal)}
-                    className="bg-slate-800 hover:bg-slate-750 text-indigo-300 border border-slate-700 px-2.5 py-1 rounded-lg transition-colors font-semibold"
-                  >
-                    {preset.label} (₹{targetVal.toLocaleString('en-IN')})
-                  </button>
-                );
-              })}
-            </div>
-          )}
         </div>
 
         {/* Alerts List Section */}
@@ -471,9 +571,10 @@ export default function PriceAlertsPage() {
                       <div className="flex gap-2">
                         {alert.winningUrl && (
                           <a
-                            href={alert.winningUrl}
+                            href={sanitizeStoreUrl(alert.winningUrl, alert.productName, alert.winningStore)}
                             target="_blank"
-                            rel="noopener noreferrer"
+                            rel="noreferrer noopener"
+                            referrerPolicy="no-referrer"
                             className={`flex-1 text-center py-2 rounded-xl text-xs font-bold transition-all ${
                               hit
                                 ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/30'

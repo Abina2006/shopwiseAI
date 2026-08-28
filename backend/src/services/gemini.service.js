@@ -117,6 +117,10 @@ ${storeData || 'Standard e-commerce marketplaces'}
 Customer Reviews:
 ${reviewData || 'No specific text reviews provided.'}
 
+Important Domain Rules for Best App Selection:
+- If this product is Electronics, Smartphones, Computers/Laptops, Audio, Wearables, or Appliances: The best app to buy MUST be either "Flipkart", "Amazon", or "Croma" (authorized genuine tech platforms with brand warranty).
+- If this product is Cosmetics, Personal Care, Fashion, Dresses, or Groceries: The best app to buy can be "Meesho" (for lowest factory prices), "Myntra", "Amazon", or "Bigbasket".
+
 Return your response strictly in valid JSON format with the following schema:
 {
   "summary": "A concise 2-sentence summary of customer satisfaction and main experiences",
@@ -126,7 +130,7 @@ Return your response strictly in valid JSON format with the following schema:
   "negativePercent": integer between 0 and 100,
   "pros": ["list 3 key advantages or compliments mentioned by users"],
   "cons": ["list 2 key drawbacks, concerns, or caveats"],
-  "bestAppToBuy": "Name of the single best app/website store to buy this from (e.g. Meesho, Amazon, Flipkart, Croma)",
+  "bestAppToBuy": "Name of the single best app/website store to buy this from (e.g. Flipkart, Amazon, Croma for Electronics; Meesho, Myntra for Fashion/Cosmetics)",
   "bestAppPrice": number (the price on that recommended store),
   "bestAppReason": "1 concise sentence explaining WHY this specific app is best (e.g. cheapest price, best rating, fastest delivery, or maximum savings)",
   "verdict": "Highly Recommended" | "Recommended Buy" | "Consider Alternatives" | "Not Recommended"

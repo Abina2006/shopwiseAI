@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import PlatformAdvisorCard from '../components/PlatformAdvisorCard';
+import { sanitizeStoreUrl } from '../utils/urlHelper';
 
 const API = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
@@ -261,11 +262,15 @@ const ComparePage = () => {
                             <span className="font-semibold text-slate-200">🏪 {l.sellerName}</span>
                             <div className="text-right">
                               <span className="font-bold text-indigo-300">₹{Number(l.price).toLocaleString('en-IN')}</span>
-                              {l.sellerUrl && (
-                                <a href={l.sellerUrl} target="_blank" rel="noopener noreferrer" className="block text-[10px] text-slate-400 hover:text-indigo-400 underline">
-                                  Store ↗
-                                </a>
-                              )}
+                              <a
+                                href={sanitizeStoreUrl(l.sellerUrl, p.name, l.sellerName)}
+                                target="_blank"
+                                rel="noreferrer noopener"
+                                referrerPolicy="no-referrer"
+                                className="block text-[10px] text-indigo-400 hover:text-indigo-300 underline font-semibold"
+                              >
+                                Store ↗
+                              </a>
                             </div>
                           </div>
                         ))

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { sanitizeStoreUrl } from '../utils/urlHelper';
 
 const API = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
@@ -103,7 +104,8 @@ const PlatformAdvisorCard = ({ product, listings = [] }) => {
   const targetListing = listings.find((l) =>
     l.sellerName.toLowerCase().includes(platform.toLowerCase())
   );
-  const targetUrl = targetListing?.sellerUrl || listings[0]?.sellerUrl || '#';
+  const rawTargetUrl = targetListing?.sellerUrl || listings[0]?.sellerUrl || '#';
+  const targetUrl = sanitizeStoreUrl(rawTargetUrl, product?.name, platform);
 
   return (
     <div
@@ -120,61 +122,61 @@ const PlatformAdvisorCard = ({ product, listings = [] }) => {
               <span className="text-xs font-bold uppercase tracking-wider text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-0.5 rounded-full">
                 AI Platform Advisor
               </span>
-              <span className="text-[11px] text-slate-400">
-                • {product?.name || 'Selected Item'}
+              <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${theme.badge}`}>
+                {advice.confidenceScore || 95}% Match
               </span>
             </div>
-            <h2 className="text-xl sm:text-2xl font-extrabold text-white mt-1">
-              Recommended Platform:{' '}
-              <span className={theme.accent}>{platform}</span>
+            <h2 className="text-xl font-extrabold text-white mt-1">
+              Recommended: Buy on <span className={theme.accent}>{platform}</span>
             </h2>
           </div>
         </div>
 
-        {/* Confidence Gauge */}
-        <div className="flex items-center gap-3 bg-slate-900/90 border border-slate-800 px-4 py-2.5 rounded-2xl self-start sm:self-auto">
-          <div className="text-right">
-            <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
-              Confidence Score
-            </span>
-            <span className="text-xl font-extrabold text-emerald-400">
-              {advice.confidenceScore}%
-            </span>
-          </div>
-          <div className="w-10 h-10 rounded-full border-2 border-emerald-500/40 border-t-emerald-400 flex items-center justify-center text-xs font-bold text-white bg-emerald-500/10">
-            🎯
-          </div>
-        </div>
-      </div>
-
-      {/* Rationale Checklist */}
-      <div>
-        <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
-          Why purchase on {platform}?
-        </h4>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-          {(advice.reasons || []).map((reason, idx) => (
-            <div
-              key={idx}
-              className="flex items-start gap-2.5 bg-slate-900/70 border border-slate-800/80 p-3 rounded-xl text-xs text-slate-200"
+        {/* Preference Selector */}
+        <div className="flex items-center gap-1.5 bg-slate-950/80 p-1 rounded-2xl border border-slate-800 self-start sm:self-auto">
+          {[
+            { id: 'best_value', label: '💰 Best Value' },
+            { id: 'fastest_delivery', label: '⚡ Fastest Delivery' },
+            { id: 'highest_rating', label: '⭐ Top Seller' },
+          ].map((pref) => (
+            <button
+              key={pref.id}
+              onClick={() => setPreference(pref.id)}
+              className={`text-xs font-semibold px-3 py-1.5 rounded-xl transition-all ${
+                preference === pref.id
+                  ? 'bg-slate-800 text-white shadow-md'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
             >
-              <span className="text-emerald-400 font-bold text-sm leading-none mt-0.5">
-                ✓
-              </span>
-              <span className="leading-relaxed">{reason}</span>
-            </div>
+              {pref.label}
+            </button>
           ))}
         </div>
       </div>
 
-      {/* 4-Pillar AI Analysis Section */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
+      {/* Rationale Bullet Points */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {(advice.reasons || []).map((reason, index) => (
+          <div
+            key={index}
+            className="flex items-start gap-2.5 bg-slate-900/60 border border-slate-800/60 p-3 rounded-2xl"
+          >
+            <span className="text-sm mt-0.5">✅</span>
+            <span className="text-xs text-slate-300 leading-relaxed font-medium">
+              {reason}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {/* 4 Decision Pillars */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {/* Pillar 1: Best Price */}
         <div className="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl space-y-1">
           <div className="flex items-center gap-1.5 text-xs text-slate-400 font-bold uppercase tracking-wider">
-            <span>💰</span> Best Price
+            <span>🏷️</span> Best Price
           </div>
-          <div className="text-lg font-extrabold text-emerald-400">
+          <div className="text-xl font-black text-emerald-400">
             ₹{Number(advice.bestPrice || 0).toLocaleString('en-IN')}
           </div>
           <p className="text-[11px] text-slate-500 truncate">
@@ -228,8 +230,9 @@ const PlatformAdvisorCard = ({ product, listings = [] }) => {
         <a
           href={targetUrl}
           target="_blank"
-          rel="noopener noreferrer"
-          className={`${theme.btn} px-6 py-3 rounded-xl text-xs flex items-center justify-center gap-2 transition-all shadow-lg whitespace-nowrap`}
+          rel="noreferrer noopener"
+          referrerPolicy="no-referrer"
+          className={`${theme.btn} px-6 py-3 rounded-xl text-xs flex items-center justify-center gap-2 transition-all shadow-lg whitespace-nowrap cursor-pointer`}
         >
           <span>Buy on {platform}</span>
           <span>↗</span>

@@ -16,6 +16,7 @@ import NotFoundPage from './pages/NotFoundPage';
 import HomePage from './pages/HomePage';
 import ProfilePage from './pages/ProfilePage';
 import PriceAlertsPage from './pages/PriceAlertsPage';
+import ProductDetailPage from './pages/ProductDetailPage';
 
 function App() {
   return (
@@ -70,6 +71,14 @@ function App() {
               }
             />
             
+            <Route
+              path="product/:id"
+              element={
+                <ProtectedRoute>
+                  <ProductDetailPage />
+                </ProtectedRoute>
+              }
+            />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
 

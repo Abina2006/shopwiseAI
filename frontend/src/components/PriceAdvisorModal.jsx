@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { sanitizeStoreUrl } from '../utils/urlHelper';
 
 const API = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
@@ -146,20 +147,19 @@ export default function PriceAdvisorModal({ product, onClose }) {
                       <span className={`text-base font-extrabold ${st.isLowest ? 'text-emerald-400' : 'text-white'}`}>
                         ₹{Number(st.price).toLocaleString('en-IN')}
                       </span>
-                      {st.storeUrl && (
-                        <a
-                          href={st.storeUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={`text-xs font-semibold px-3 py-1.5 rounded-xl transition-all shadow ${
-                            st.isLowest
-                              ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30'
-                              : 'bg-slate-800 hover:bg-slate-700 text-indigo-300 hover:text-white border border-slate-700'
-                          }`}
-                        >
-                          Buy on {st.store} ↗
-                        </a>
-                      )}
+                      <a
+                        href={sanitizeStoreUrl(st.storeUrl, advice.productName, st.store)}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                        referrerPolicy="no-referrer"
+                        className={`text-xs font-semibold px-3 py-1.5 rounded-xl transition-all shadow ${
+                          st.isLowest
+                            ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30'
+                            : 'bg-slate-800 hover:bg-slate-750 text-indigo-300 hover:text-white border border-slate-700'
+                        }`}
+                      >
+                        Buy on {st.store} ↗
+                      </a>
                     </div>
                   </div>
                 ))}

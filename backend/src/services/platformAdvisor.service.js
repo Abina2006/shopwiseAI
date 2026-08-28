@@ -21,37 +21,29 @@ function getAIClient() {
 /**
  * Category-based platform intelligence profiles
  */
+/**
+ * Category-based platform intelligence profiles
+ */
 const CATEGORY_PROFILES = {
-  Clothing: {
-    topPlatforms: ['Myntra', 'Meesho', 'Ajio', 'Flipkart'],
+  Smartphones: {
+    topPlatforms: ['Flipkart', 'Amazon', 'Croma'],
     strengths: {
-      Myntra: ['Curated top fashion brands', 'Hassle-free size exchange & returns', 'Frequent '],
-      Meesho: ['Lowest unbranded/direct-to-consumer prices', 'Free delivery on apparel', 'Budget ethnic wear'],
-      Ajio: ['Trendy international & streetwear labels', 'Lucrative AJIOMANIA coupon discounts'],
-      Flipkart: ['Wide variety and affordable fashion bundles'],
+      Flipkart: ['Flipkart Assured certified', 'Fast transit protection', 'High exchange value for old smartphones', 'Official brand warranties'],
+      Amazon: ['Prime 1-2 Day Delivery', 'Hassle-free 7-day replacement', 'Official brand warranty support', 'Amazon Pay Cashback'],
+      Croma: ['Tata-backed authorized retail', 'Option for physical store pickup & demo', 'Dedicated technician support'],
     },
-    defaultOffers: 'Up to 60% Off + Flat ₹200 on First Order',
-    delivery: '2-4 Business Days with Open-Box Delivery',
+    defaultOffers: 'Up to ₹2,000 Instant Bank Discount + No Cost EMI',
+    delivery: '1-2 Business Days Express Delivery',
   },
-  Fashion: {
-    topPlatforms: ['Myntra', 'Ajio', 'Meesho'],
+  Computers: {
+    topPlatforms: ['Amazon', 'Flipkart', 'Croma'],
     strengths: {
-      Myntra: ['Original brand guarantee', 'Premium quality checks', '14-day hassle-free returns'],
-      Ajio: ['Direct retail discounts', 'Exclusive style drops'],
-      Meesho: ['Lowest budget pricing for everyday essentials'],
+      Amazon: ['Brand-authorized store listings', 'Free doorstep transit insurance', 'Fast Prime dispatch'],
+      Flipkart: ['SuperCoins cashback and trade-in bonuses', 'Flipkart Assured safe packaging'],
+      Croma: ['In-store technician setup', 'Extended warranty protection plans'],
     },
-    defaultOffers: 'Instant 10% Bank Discount on HDFC/ICICI Cards',
-    delivery: '2-3 Days Fast Dispatch',
-  },
-  Footwear: {
-    topPlatforms: ['Myntra', 'Nike Official', 'Amazon', 'Flipkart'],
-    strengths: {
-      Myntra: ['Authentic sneaker authentication', 'Easy size exchanges'],
-      'Nike Official': ['Direct manufacturer warranty', 'Exclusive member drops'],
-      Amazon: ['Fast Prime dispatch', 'Verified seller authenticity'],
-    },
-    defaultOffers: 'Extra ₹300 Off on Prepaid Orders',
-    delivery: '1-3 Business Days',
+    defaultOffers: 'Up to ₹5,000 Exchange Bonus + Free Microsoft Office bundle',
+    delivery: 'Scheduled doorstep delivery with verification OTP',
   },
   Electronics: {
     topPlatforms: ['Amazon', 'Flipkart', 'Croma'],
@@ -64,24 +56,14 @@ const CATEGORY_PROFILES = {
     delivery: 'Next-Day Prime Delivery available',
   },
   Audio: {
-    topPlatforms: ['Amazon', 'Flipkart', 'Meesho'],
+    topPlatforms: ['Amazon', 'Flipkart', 'Croma'],
     strengths: {
-      Amazon: ['Widest brand selection (Apple, Sony, boAt)', '1-day fast replacement guarantee', 'Verified buyer review authenticity'],
-      Flipkart: ['Competitive pricing on TWS earbuds', 'Exclusive brand launches'],
-      Meesho: ['Lowest prices for budget gaming earbuds and accessories'],
+      Amazon: ['Widest brand selection (Apple, Sony, boAt, JBL)', '1-day fast replacement guarantee', 'Verified buyer review authenticity'],
+      Flipkart: ['Competitive pricing on TWS earbuds', 'Exclusive brand launches with SuperCoins'],
+      Croma: ['Authorized retail warranty', 'In-store trial demo'],
     },
     defaultOffers: 'Up to 5% Cashback with Amazon Pay / Flipkart Axis Bank Cards',
     delivery: '1-2 Business Days',
-  },
-  Computers: {
-    topPlatforms: ['Amazon', 'Croma', 'Flipkart'],
-    strengths: {
-      Amazon: ['Brand-authorized store listings', 'Free doorstep transit insurance', 'Fast Prime dispatch'],
-      Croma: ['In-store technician setup', 'Extended warranty protection plans'],
-      Flipkart: ['SuperCoins cashback and trade-in bonuses'],
-    },
-    defaultOffers: 'Up to ₹5,000 Exchange Bonus + Free Microsoft Office bundle',
-    delivery: 'Scheduled doorstep delivery with verification OTP',
   },
   Wearables: {
     topPlatforms: ['Amazon', 'Flipkart', 'Croma'],
@@ -93,11 +75,76 @@ const CATEGORY_PROFILES = {
     defaultOffers: 'Instant ₹1,000 Off on SBI & ICICI Bank Cards',
     delivery: '1-2 Days Express Delivery',
   },
-  General: {
-    topPlatforms: ['Amazon', 'Flipkart', 'Meesho'],
+  Appliances: {
+    topPlatforms: ['Amazon', 'Flipkart', 'Croma'],
     strengths: {
-      Amazon: ['Widest product catalog', 'Reliable customer service', 'A-to-z Guarantee protection'],
+      Amazon: ['Doorstep installation assistance', 'Scheduled delivery slots', 'Brand warranty protection'],
+      Flipkart: ['Flipkart Assured certified appliances', 'High exchange value'],
+      Croma: ['In-store demo and certified technician installation'],
+    },
+    defaultOffers: 'Flat 10% Instant Bank Discount on Credit Cards',
+    delivery: 'Scheduled 1-3 Days Doorstep Delivery',
+  },
+  Clothing: {
+    topPlatforms: ['Meesho', 'Myntra', 'Ajio', 'Flipkart'],
+    strengths: {
+      Meesho: ['Unbeatable lowest factory-direct prices', 'Free delivery on all ethnic & casual wear', 'Massive budget variety'],
+      Myntra: ['Curated top fashion brands', '14-day doorstep size exchange & returns', '100% original guarantee'],
+      Ajio: ['Trendy international & streetwear labels', 'Lucrative AJIOMANIA coupon discounts'],
+      Flipkart: ['Wide variety and affordable fashion bundles'],
+    },
+    defaultOffers: 'Up to 60% Off + Flat ₹200 on First Order',
+    delivery: '2-4 Business Days with Easy Exchange',
+  },
+  Fashion: {
+    topPlatforms: ['Meesho', 'Myntra', 'Ajio', 'Flipkart'],
+    strengths: {
+      Meesho: ['Lowest budget pricing for dresses and everyday essentials', 'Direct manufacturer rates without middleman markup'],
+      Myntra: ['Original brand guarantee', 'Premium quality checks', '14-day hassle-free returns'],
+      Ajio: ['Direct retail discounts', 'Exclusive style drops'],
+      Flipkart: ['Flipkart Assured quality checked apparel'],
+    },
+    defaultOffers: 'Instant 10% Bank Discount on HDFC/ICICI Cards',
+    delivery: '2-3 Days Fast Dispatch',
+  },
+  'Personal Care': {
+    topPlatforms: ['Meesho', 'Flipkart', 'Amazon', 'Bigbasket'],
+    strengths: {
+      Meesho: ['Lowest prices on bulk soaps, cosmetics & daily personal care', 'Free doorstep delivery on budget bundles'],
+      Flipkart: ['Flipkart Supermart value packs and swift delivery'],
+      Amazon: ['Amazon Fresh / Pantry guaranteed fresh cosmetics and soaps'],
+      Bigbasket: ['Express 2-hour grocery delivery', 'Genuine personal care products'],
+    },
+    defaultOffers: 'Extra 10% Off on Multibuy Combos',
+    delivery: '1-3 Business Days',
+  },
+  Groceries: {
+    topPlatforms: ['Meesho', 'Bigbasket', 'Amazon', 'Flipkart'],
+    strengths: {
+      Meesho: ['Direct farm & mill factory rates on staple groceries, tea & cooking essentials'],
+      Bigbasket: ['Superfast doorstep daily grocery delivery', 'Quality check freshness guarantee'],
+      Amazon: ['Amazon Fresh slot-based delivery with Prime benefits'],
+      Flipkart: ['Flipkart Grocery SuperCoins savings & bank discounts'],
+    },
+    defaultOffers: 'Flat ₹100 Cashback on Grocery Orders Above ₹999',
+    delivery: '1-2 Business Days Express Delivery',
+  },
+  Footwear: {
+    topPlatforms: ['Myntra', 'Nike Official', 'Flipkart', 'Amazon'],
+    strengths: {
+      Myntra: ['Authentic sneaker authentication', 'Easy size exchanges'],
+      'Nike Official': ['Direct manufacturer warranty', 'Exclusive member drops'],
+      Flipkart: ['Flipkart Assured genuine footwear'],
+      Amazon: ['Fast Prime dispatch', 'Verified seller authenticity'],
+    },
+    defaultOffers: 'Extra ₹300 Off on Prepaid Orders',
+    delivery: '1-3 Business Days',
+  },
+  General: {
+    topPlatforms: ['Flipkart', 'Amazon', 'Meesho'],
+    strengths: {
       Flipkart: ['Strong pan-India delivery network and competitive sale events'],
+      Amazon: ['Widest product catalog', 'Reliable customer service', 'A-to-z Guarantee protection'],
       Meesho: ['Direct factory prices without middlemen markups'],
     },
     defaultOffers: '10% Instant Savings on Major Credit & Debit Cards',
@@ -112,7 +159,23 @@ export function generatePlatformAdvice({ product, listings = [], userPreference 
   const category = product?.category || 'General';
   const profile = CATEGORY_PROFILES[category] || CATEGORY_PROFILES.General;
 
-  const validListings = listings.filter(l => (parseFloat(l.price) || 0) > 0);
+  const isTechCategory = ['Smartphones', 'Computers', 'Electronics', 'Audio', 'Wearables', 'Appliances'].includes(category);
+  const isLifestyleCategory = ['Fashion', 'Clothing', 'Personal Care', 'Groceries'].includes(category);
+
+  // Filter listings based on platform specialization rules
+  let validListings = listings.filter(l => (parseFloat(l.price) || 0) > 0);
+
+  if (isTechCategory) {
+    // For Electronics/Smartphones/Laptops/Audio: prioritize Flipkart, Amazon, Croma
+    const techListings = validListings.filter(l => {
+      const name = (l.sellerName || '').toLowerCase();
+      return name.includes('flipkart') || name.includes('amazon') || name.includes('croma') || name.includes('nike') || name.includes('apple');
+    });
+    if (techListings.length > 0) {
+      validListings = techListings;
+    }
+  }
+
   const lowestListing = validListings.length > 0
     ? validListings.reduce((min, cur) => parseFloat(cur.price) < parseFloat(min.price) ? cur : min, validListings[0])
     : null;
@@ -132,9 +195,9 @@ export function generatePlatformAdvice({ product, listings = [], userPreference 
     : null;
   const bestSeller = bestSellerListing?.sellerName || profile.topPlatforms[0];
 
-  // Pick Winning Platform based on actual live listings and lowest verified price
+  // Pick Winning Platform based on actual live listings and domain specialization
   let recommendedPlatform = profile.topPlatforms[0];
-  let confidenceScore = 94;
+  let confidenceScore = 95;
   let reasons = [];
 
   if (lowestListing) {
@@ -142,78 +205,71 @@ export function generatePlatformAdvice({ product, listings = [], userPreference 
     recommendedPlatform = lowestListing.sellerName;
 
     if (sellerLower.includes('flipkart')) {
-      confidenceScore = 95;
-      reasons = [
-        `Lowest verified market price of ₹${bestPrice.toLocaleString('en-IN')}`,
-        'Flipkart Assured certified quality and fast transit protection',
-        'High customer rating with easy 7-day replacement support',
-        savings > 0 ? `Save ₹${savings.toLocaleString('en-IN')} (${savingsPct}%) compared to other marketplaces` : 'Best overall value deal on verified electronics'
-      ];
-    } else if (sellerLower.includes('meesho')) {
-      confidenceScore = 93;
-      reasons = [
-        `Unbeatable lowest price of ₹${bestPrice.toLocaleString('en-IN')}`,
-        'Zero shipping fees with verified seller fulfillment',
-        'Huge order volume with positive buyer satisfaction',
-        savings > 0 ? `Save ₹${savings.toLocaleString('en-IN')} (${savingsPct}%) compared to competing stores` : 'Direct factory discount'
-      ];
-    } else if (sellerLower.includes('croma')) {
       confidenceScore = 96;
       reasons = [
-        `Best price of ₹${bestPrice.toLocaleString('en-IN')} from authorized Tata retail chain`,
+        `Lowest verified market price of ₹${bestPrice.toLocaleString('en-IN')}`,
+        'Flipkart Assured certified genuine electronics with brand warranty',
+        'High customer rating with easy 7-day replacement support',
+        savings > 0 ? `Save ₹${savings.toLocaleString('en-IN')} (${savingsPct}%) compared to other marketplaces` : 'Best verified value on electronics'
+      ];
+    } else if (sellerLower.includes('amazon')) {
+      confidenceScore = 96;
+      reasons = [
+        `Best verified price of ₹${bestPrice.toLocaleString('en-IN')}`,
+        'Prime 1-2 Day Superfast Delivery with transit safety protection',
+        'Official manufacturer warranty coverage and hassle-free returns',
+        'Highest customer satisfaction and review reliability'
+      ];
+    } else if (sellerLower.includes('croma')) {
+      confidenceScore = 95;
+      reasons = [
+        `Best price of ₹${bestPrice.toLocaleString('en-IN')} from authorized Tata Croma retail`,
         'Official manufacturer warranty & technician setup assistance',
         'Option for instant in-store pickup and demo',
         'Transparent refund and replacement terms'
       ];
-    } else if (sellerLower.includes('nike')) {
-      confidenceScore = 98;
+    } else if (sellerLower.includes('meesho')) {
+      confidenceScore = 94;
       reasons = [
-        '100% Guaranteed Direct Manufacturer Authenticity',
-        'Official Nike warranty and member-exclusive benefits',
-        'Fast authorized dispatch and hassle-free returns',
-        `Best direct brand price at ₹${bestPrice.toLocaleString('en-IN')}`
+        `Unbeatable lowest direct-to-consumer price of ₹${bestPrice.toLocaleString('en-IN')}`,
+        'Zero shipping fees with verified seller fulfillment',
+        'Huge customer volume with positive buyer feedback',
+        savings > 0 ? `Save ₹${savings.toLocaleString('en-IN')} (${savingsPct}%) compared to competing stores` : 'Direct factory discount'
       ];
     } else if (sellerLower.includes('myntra')) {
       confidenceScore = 96;
       reasons = [
         '100% Original Brand Guarantee with verified authenticity',
         '14-day hassle-free doorstep size exchange and returns',
-        `Lowest available fashion deal at ₹${bestPrice.toLocaleString('en-IN')}`,
+        `Lowest available deal at ₹${bestPrice.toLocaleString('en-IN')}`,
         'Highest rating and review volume for fit & quality'
       ];
     } else {
       confidenceScore = 95;
       reasons = [
         `Best verified price of ₹${bestPrice.toLocaleString('en-IN')}`,
-        'Prime 1-2 Day Superfast Delivery with verified transit safety',
-        'Hassle-free 7-day replacement and genuine seller badge',
-        'Highest customer satisfaction and review volume'
+        'Fast verified delivery with transit safety',
+        'Hassle-free replacement and genuine seller badge',
+        'High customer satisfaction score'
       ];
     }
-  } else if (category === 'Clothing' || category === 'Fashion') {
-    recommendedPlatform = 'Myntra';
-    confidenceScore = 95;
-    reasons = [
-      '100% Verified Original Brand Guarantee',
-      'Fast 14-day hassle-free doorstep size exchange',
-      'Highest customer satisfaction scores for fabric & fit',
-      'Exclusive platform coupon discounts and early access sales'
-    ];
-  } else if (category === 'Footwear') {
-    recommendedPlatform = 'Nike Official';
+  } else if (isTechCategory) {
+    recommendedPlatform = 'Flipkart';
     confidenceScore = 96;
     reasons = [
-      'Authentic manufacturer warranty and verified quality',
-      'Fast doorstep delivery with genuine product authentication',
-      'Easy size exchange and return policy'
+      'Flipkart Assured verified genuine electronics and authorized warranty',
+      'Fast 1-2 day express doorstep shipping with OTP verification',
+      'Top-rated tech seller network with easy replacement support',
+      'Exclusive bank card instant discounts and SuperCoins cashback'
     ];
-  } else {
-    recommendedPlatform = profile.topPlatforms[0] || 'Amazon';
-    confidenceScore = 94;
+  } else if (isLifestyleCategory) {
+    recommendedPlatform = 'Meesho';
+    confidenceScore = 95;
     reasons = [
-      'Prime fast delivery with verified seller authenticity',
-      'Comprehensive customer protection and warranty assistance',
-      'Highest rating and review volume across tech buyers'
+      'Unbeatable lowest factory-direct pricing for apparel & cosmetics',
+      'Free doorstep shipping on all budget orders',
+      'Direct-to-consumer savings without marketplace markups',
+      'High order volume with positive buyer satisfaction'
     ];
   }
 

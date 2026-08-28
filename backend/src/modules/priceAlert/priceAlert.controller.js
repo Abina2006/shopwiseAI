@@ -87,25 +87,112 @@ export async function getPriceAlerts(req, res) {
 
 /**
  * POST /api/price-alerts
- * Body: { productId, targetPrice, email, userId }
+ * Body: { productId, productUrl, targetPrice, email, userId }
  */
 export async function createPriceAlert(req, res) {
   try {
-    const { productId, targetPrice, email, userId } = req.body;
-    if (!productId || !targetPrice) {
-      return res.status(400).json({ success: false, message: 'Product ID and target price are required.' });
+    const { productId, productUrl, url, targetPrice, email, userId } = req.body;
+    const inputUrl = productUrl || url || '';
+
+    if ((!productId && !inputUrl) || !targetPrice) {
+      return res.status(400).json({ success: false, message: 'Product selection or valid Product URL and target price are required.' });
     }
 
-    const product = await prisma.product.findUnique({
-      where: { id: productId },
-      include: { listings: { orderBy: { price: 'asc' } } }
-    });
+    let product = null;
+    let primaryListing = null;
 
-    if (!product || product.listings.length === 0) {
-      return res.status(404).json({ success: false, message: 'Product or store listings not found.' });
+    if (productId) {
+      product = await prisma.product.findUnique({
+        where: { id: productId },
+        include: { listings: { orderBy: { price: 'asc' } } }
+      });
+      if (product && product.listings.length > 0) {
+        primaryListing = product.listings[0];
+      }
     }
 
-    const primaryListing = product.listings[0];
+    // If URL was provided or product was not found by ID
+    if (!product && inputUrl) {
+      // 1. Check if an existing listing matches this sellerUrl
+      const matchedListing = await prisma.productListing.findFirst({
+        where: {
+          sellerUrl: {
+            contains: inputUrl.split('?')[0],
+            mode: 'insensitive'
+          }
+        },
+        include: { product: true }
+      });
+
+      if (matchedListing) {
+        primaryListing = matchedListing;
+        product = matchedListing.product;
+      } else {
+        // 2. Extract seller & clean title from URL
+        let sellerName = 'Flipkart';
+        if (inputUrl.includes('amazon')) sellerName = 'Amazon';
+        else if (inputUrl.includes('meesho')) sellerName = 'Meesho';
+        else if (inputUrl.includes('croma')) sellerName = 'Croma';
+        else if (inputUrl.includes('myntra')) sellerName = 'Myntra';
+
+        // Extract title from URL slug
+        let extractedName = 'Imported E-Commerce Product';
+        try {
+          const urlObj = new URL(inputUrl);
+          const pathSegments = urlObj.pathname.split('/').filter(Boolean);
+          if (pathSegments.length > 0) {
+            const rawSlug = pathSegments[0].replace(/[-_]/g, ' ');
+            if (rawSlug.length > 3 && !rawSlug.startsWith('p') && !rawSlug.startsWith('dp')) {
+              extractedName = decodeURIComponent(rawSlug)
+                .replace(/\b\w/g, l => l.toUpperCase())
+                .substring(0, 75);
+            }
+          }
+        } catch (e) {
+          // fallback
+        }
+
+        // Create new product in catalog
+        product = await prisma.product.create({
+          data: {
+            name: extractedName,
+            category: 'General',
+            brand: sellerName,
+            imageUrl: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=600',
+            description: `Imported listing from ${sellerName} via URL tracking.`
+          }
+        });
+
+        const estPrice = parseFloat(targetPrice) ? parseFloat(targetPrice) * 1.15 : 1999;
+
+        primaryListing = await prisma.productListing.create({
+          data: {
+            productId: product.id,
+            sellerName,
+            sellerUrl: inputUrl,
+            price: estPrice,
+            currency: 'INR',
+            rating: 4.4,
+            reviewCount: 150,
+            deliveryTime: '2-4 Days',
+            offers: 'Bank & UPI Discounts Available'
+          }
+        });
+
+        // Add initial price history
+        await prisma.priceHistory.create({
+          data: {
+            listingId: primaryListing.id,
+            price: estPrice,
+            recordedAt: new Date()
+          }
+        });
+      }
+    }
+
+    if (!product || !primaryListing) {
+      return res.status(404).json({ success: false, message: 'Could not locate or initialize product for this price alert.' });
+    }
 
     // Find or create user
     let user = null;
