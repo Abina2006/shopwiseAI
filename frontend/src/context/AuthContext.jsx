@@ -31,7 +31,10 @@ export const AuthProvider = ({ children }) => {
       setUser(userData);
       return { success: true };
     } catch (error) {
-      const message = error.response?.data?.message || 'Login failed. Please try again.';
+      const message = error.response?.data?.message || 
+        (error.message === 'Network Error' || !error.response
+          ? 'Unable to connect to backend API server. Please check your connection or backend URL.'
+          : 'Login failed. Please try again.');
       return { success: false, error: message };
     } finally {
       setLoading(false);
@@ -51,7 +54,10 @@ export const AuthProvider = ({ children }) => {
       setUser(userData);
       return { success: true };
     } catch (error) {
-      const message = error.response?.data?.message || 'Registration failed. Please try again.';
+      const message = error.response?.data?.message || 
+        (error.message === 'Network Error' || !error.response
+          ? 'Unable to connect to backend API server. Please check your connection or backend URL.'
+          : 'Registration failed. Please try again.');
       return { success: false, error: message };
     } finally {
       setLoading(false);

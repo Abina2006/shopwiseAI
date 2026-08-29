@@ -41,7 +41,7 @@ Follow the instructions below to deploy your frontend and backend on free, cloud
    npx prisma db push
    node prisma/seed_reviews.js
    ```
-7. Copy your deployed backend URL: `https://shopwise-backend.onrender.com`.
+4. Copy your deployed backend URL: `https://shopwiseai-pys5.onrender.com`.
 
 ---
 
@@ -53,7 +53,7 @@ Follow the instructions below to deploy your frontend and backend on free, cloud
    - **Build Command**: `npm run build`
    - **Output Directory**: `dist`
 3. Add **Environment Variable**:
-   - `VITE_API_BASE_URL` = `https://shopwise-backend.onrender.com/api`
+   - `VITE_API_BASE_URL` = `https://shopwiseai-pys5.onrender.com/api`
 4. Click **Deploy**.
 
 ---
