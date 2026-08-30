@@ -264,7 +264,7 @@ def get_smart_fallback(target_url: str):
     """
     url_lower = target_url.lower()
 
-    if 'boat-airdopes-alpha' in url_lower or 'airdopes' in url_lower or 'earbuds' in url_lower:
+    if 'boat-airdopes-alpha' in url_lower:
         seller_name = 'Meesho' if 'meesho' in url_lower else ('Flipkart' if 'flipkart' in url_lower else ('Amazon' if 'amazon' in url_lower else 'Croma'))
         real_price = 981.00 if seller_name == 'Meesho' else (1199.00 if seller_name in ['Flipkart', 'Amazon'] else 1299.00)
         return [{
