@@ -25,17 +25,36 @@ function App() {
         <Routes>
           {/* Main User Site Routes */}
           <Route path="/" element={<Layout />}>
-            {/* Public Auth Routes */}
+            {/* Public Landing & Auth Routes */}
+            <Route index element={<HomePage />} />
             <Route path="login" element={<LoginPage />} />
             <Route path="register" element={<RegisterPage />} />
 
-            {/* Public Browsing & Landing Pages */}
-            <Route index element={<HomePage />} />
-            <Route path="compare" element={<ComparePage />} />
-            <Route path="scrape" element={<ScraperPage />} />
-            <Route path="product/:id" element={<ProductDetailPage />} />
-
-            {/* Protected Account Pages (Require Login) */}
+            {/* Protected App Pages (Require Login) */}
+            <Route
+              path="compare"
+              element={
+                <ProtectedRoute>
+                  <ComparePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="scrape"
+              element={
+                <ProtectedRoute>
+                  <ScraperPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="product/:id"
+              element={
+                <ProtectedRoute>
+                  <ProductDetailPage />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="profile"
               element={

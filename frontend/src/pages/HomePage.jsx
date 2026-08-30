@@ -607,131 +607,159 @@ export default function HomePage() {
           Our AI finds you the best deal — every single time.
         </p>
 
-        {/* Mode Selector Tabs */}
-        <div className="flex justify-center gap-2 mb-4 z-10 relative">
-          <button
-            type="button"
-            onClick={() => setHeroMode('scrape')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-              heroMode === 'scrape'
-                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 border border-indigo-500'
-                : 'bg-slate-900/80 text-slate-400 hover:text-white border border-slate-800'
-            }`}
-          >
-            <span>⚡ Compare Product URL</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setHeroMode('search')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-              heroMode === 'search'
-                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 border border-indigo-500'
-                : 'bg-slate-900/80 text-slate-400 hover:text-white border border-slate-800'
-            }`}
-          >
-            <span>🔍 Search Catalog</span>
-          </button>
-        </div>
-
-        {/* Form Container */}
-        {heroMode === 'scrape' ? (
-          <form onSubmit={handleHeroScrape} className="max-w-2xl mx-auto mb-4 z-10 relative space-y-3">
-            <div className="flex flex-col sm:flex-row gap-2">
-              <div className="flex-1 relative">
-                <span className="absolute left-3.5 top-3.5 text-slate-400 text-sm">🔗</span>
-                <input
-                  type="url"
-                  placeholder="Paste Meesho, Flipkart, Amazon, Myntra link..."
-                  value={urlInput}
-                  onChange={e => setUrlInput(e.target.value)}
-                  className="w-full bg-slate-800/90 text-sm text-white placeholder-slate-400 pl-10 pr-4 py-3 rounded-xl border border-slate-700 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all shadow-inner"
-                  required
-                />
+        {!isAuthenticated ? (
+          <div className="max-w-xl mx-auto space-y-6 z-10 relative">
+            <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-4 shadow-2xl backdrop-blur-md">
+              <span className="text-4xl block mb-2">🛍️</span>
+              <h2 className="text-xl font-extrabold text-white">Compare Prices Across 5 Indian Stores</h2>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Sign in or register to compare product links in real-time across <strong className="text-slate-200">Meesho, Flipkart, Amazon, Croma & Myntra</strong>, get Google Gemini AI review summaries, and receive instant price drop alerts.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 pt-2 justify-center">
+                <Link
+                  to="/login"
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-6 py-3 rounded-xl transition-all shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-1.5"
+                >
+                  <span>🔐 Sign In to Compare Prices</span>
+                </Link>
+                <Link
+                  to="/register"
+                  className="bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700 font-bold text-xs px-6 py-3 rounded-xl transition-all flex items-center justify-center gap-1.5"
+                >
+                  <span>✨ Create Free Account</span>
+                </Link>
               </div>
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Mode Selector Tabs */}
+            <div className="flex justify-center gap-2 mb-4 z-10 relative">
               <button
-                type="submit"
-                disabled={scrapeLoading}
-                className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-sm px-6 py-3 rounded-xl transition-all shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 disabled:opacity-50"
+                type="button"
+                onClick={() => setHeroMode('scrape')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  heroMode === 'scrape'
+                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 border border-indigo-500'
+                    : 'bg-slate-900/80 text-slate-400 hover:text-white border border-slate-800'
+                }`}
               >
-                <span>{scrapeLoading ? "🕷️ Extracting..." : "⚡ Compare Now"}</span>
+                <span>⚡ Compare Product URL</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setHeroMode('search')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  heroMode === 'search'
+                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 border border-indigo-500'
+                    : 'bg-slate-900/80 text-slate-400 hover:text-white border border-slate-800'
+                }`}
+              >
+                <span>🔍 Search Catalog</span>
               </button>
             </div>
 
-            {/* Quick try example pills */}
-            <div className="flex flex-wrap items-center justify-center gap-2 text-xs text-slate-400">
-              <span className="text-[11px] text-slate-500 font-medium">Try:</span>
-              {[
-                { label: 'boAt Earbuds (Meesho)', url: 'https://www.meesho.com/hoppup-xo3-gaming-earbuds-with-35ms-low-latency/p/6p8x2z' },
-                { label: 'iPhone 15 Pro (Amazon)', url: 'https://amazon.in/dp/B0CHX12345' },
-                { label: 'Sony Headphones (Amazon)', url: 'https://amazon.in/dp/B09XS8728S' },
-                { label: 'boAt Airdopes (Flipkart)', url: 'https://flipkart.com/boat-airdopes-141' },
-              ].map(ex => (
+            {/* Form Container */}
+            {heroMode === 'scrape' ? (
+              <form onSubmit={handleHeroScrape} className="max-w-2xl mx-auto mb-4 z-10 relative space-y-3">
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="flex-1 relative">
+                    <span className="absolute left-3.5 top-3.5 text-slate-400 text-sm">🔗</span>
+                    <input
+                      type="url"
+                      placeholder="Paste Meesho, Flipkart, Amazon, Myntra link..."
+                      value={urlInput}
+                      onChange={e => setUrlInput(e.target.value)}
+                      className="w-full bg-slate-800/90 text-sm text-white placeholder-slate-400 pl-10 pr-4 py-3 rounded-xl border border-slate-700 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all shadow-inner"
+                      required
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={scrapeLoading}
+                    className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-sm px-6 py-3 rounded-xl transition-all shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    <span>{scrapeLoading ? "🕷️ Extracting..." : "⚡ Compare Now"}</span>
+                  </button>
+                </div>
+
+                {/* Quick try example pills */}
+                <div className="flex flex-wrap items-center justify-center gap-2 text-xs text-slate-400">
+                  <span className="text-[11px] text-slate-500 font-medium">Try:</span>
+                  {[
+                    { label: 'boAt Earbuds (Meesho)', url: 'https://www.meesho.com/hoppup-xo3-gaming-earbuds-with-35ms-low-latency/p/6p8x2z' },
+                    { label: 'iPhone 15 Pro (Amazon)', url: 'https://amazon.in/dp/B0CHX12345' },
+                    { label: 'Sony Headphones (Amazon)', url: 'https://amazon.in/dp/B09XS8728S' },
+                    { label: 'boAt Airdopes (Flipkart)', url: 'https://flipkart.com/boat-airdopes-141' },
+                  ].map(ex => (
+                    <button
+                      key={ex.label}
+                      type="button"
+                      onClick={() => {
+                        setUrlInput(ex.url);
+                        setHeroMode('scrape');
+                      }}
+                      className="bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-indigo-300 hover:text-indigo-200 px-2.5 py-1 rounded-lg text-[11px] transition-all"
+                    >
+                      {ex.label}
+                    </button>
+                  ))}
+                </div>
+              </form>
+            ) : (
+              <form onSubmit={handleHeroSearch} className="flex items-center max-w-lg mx-auto gap-2 mb-6 z-10 relative">
+                <div className="flex-1 relative">
+                  <span className="absolute left-3.5 top-3.5 text-slate-400 text-sm">🔍</span>
+                  <input
+                    id="hero-search-input"
+                    type="text"
+                    placeholder="Search soap, kurti, iPhone, laptop…"
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    className="w-full bg-slate-800 text-sm text-white placeholder-slate-400 pl-10 pr-4 py-3 rounded-xl border border-slate-700 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all shadow-inner"
+                  />
+                </div>
                 <button
-                  key={ex.label}
-                  type="button"
-                  onClick={() => {
-                    setUrlInput(ex.url);
-                    setHeroMode('scrape');
-                  }}
-                  className="bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-indigo-300 hover:text-indigo-200 px-2.5 py-1 rounded-lg text-[11px] transition-all"
+                  id="hero-search-btn"
+                  type="submit"
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm px-6 py-3 rounded-xl transition-all shadow-lg shadow-indigo-700/40 active:scale-95"
                 >
-                  {ex.label}
+                  Search
                 </button>
-              ))}
-            </div>
-          </form>
-        ) : (
-          <form onSubmit={handleHeroSearch} className="flex items-center max-w-lg mx-auto gap-2 mb-6 z-10 relative">
-            <div className="flex-1 relative">
-              <span className="absolute left-3.5 top-3.5 text-slate-400 text-sm">🔍</span>
-              <input
-                id="hero-search-input"
-                type="text"
-                placeholder="Search soap, kurti, iPhone, laptop…"
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="w-full bg-slate-800 text-sm text-white placeholder-slate-400 pl-10 pr-4 py-3 rounded-xl border border-slate-700 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all shadow-inner"
-              />
-            </div>
-            <button
-              id="hero-search-btn"
-              type="submit"
-              className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm px-6 py-3 rounded-xl transition-all shadow-lg shadow-indigo-700/40 active:scale-95"
-            >
-              Search
-            </button>
-          </form>
-        )}
+              </form>
+            )}
 
-        {/* Live Scrape Result Preview Banner on Home Page */}
-        {scrapeLoading && (
-          <div className="max-w-xl mx-auto my-6 p-4 bg-indigo-950/40 border border-indigo-500/30 rounded-2xl text-center space-y-2 text-indigo-300 animate-pulse">
-            <span className="text-2xl block">🕷️</span>
-            <p className="text-xs font-bold">Scanning product & extracting live store prices...</p>
-          </div>
-        )}
+            {/* Live Scrape Result Preview Banner on Home Page */}
+            {scrapeLoading && (
+              <div className="max-w-xl mx-auto my-6 p-4 bg-indigo-950/40 border border-indigo-500/30 rounded-2xl text-center space-y-2 text-indigo-300 animate-pulse">
+                <span className="text-2xl block">🕷️</span>
+                <p className="text-xs font-bold">Scanning product & extracting live store prices...</p>
+              </div>
+            )}
 
-        {scrapeError && (
-          <div className="max-w-xl mx-auto my-6 p-4 bg-red-950/40 border border-red-500/30 rounded-2xl text-center text-xs text-red-300">
-            ⚠️ {scrapeError}
-          </div>
-        )}
+            {scrapeError && (
+              <div className="max-w-xl mx-auto my-6 p-4 bg-red-950/40 border border-red-500/30 rounded-2xl text-center text-xs text-red-300">
+                ⚠️ {scrapeError}
+              </div>
+            )}
 
-        {scrapeResult && (
-          <div className="max-w-2xl mx-auto my-6 p-6 bg-slate-900 border border-indigo-500/50 rounded-3xl text-left space-y-4 shadow-2xl shadow-indigo-950/50 animate-in fade-in duration-300">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                Successfully Scraped & Compared
-              </span>
-              <button onClick={() => setScrapeResult(null)} className="text-xs text-slate-500 hover:text-slate-300">✕ Close</button>
-            </div>
-            <ProductCard
-              product={scrapeResult.product || scrapeResult}
-              onOpenAdvisor={(prod) => setActiveAdvisorProduct(prod)}
-              onOpenAlert={(prod) => setActiveAlertProduct(prod)}
-            />
-          </div>
+            {scrapeResult && (
+              <div className="max-w-2xl mx-auto my-6 p-6 bg-slate-900 border border-indigo-500/50 rounded-3xl text-left space-y-4 shadow-2xl shadow-indigo-950/50 animate-in fade-in duration-300">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                  <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                    Successfully Scraped & Compared
+                  </span>
+                  <button onClick={() => setScrapeResult(null)} className="text-xs text-slate-500 hover:text-slate-300">✕ Close</button>
+                </div>
+                <ProductCard
+                  product={scrapeResult.product || scrapeResult}
+                  onOpenAdvisor={(prod) => setActiveAdvisorProduct(prod)}
+                  onOpenAlert={(prod) => setActiveAlertProduct(prod)}
+                />
+              </div>
+            )}
+          </>
         )}
       </section>
 
