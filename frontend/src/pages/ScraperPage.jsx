@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useRealtimeFeed } from '../hooks/useRealtimeFeed';
 
-const API = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+const API = import.meta.env.VITE_API_BASE_URL || 'https://shopwiseai-pys5.onrender.com/api';
 
 const STEPS = [
   { id: 1, label: 'Connecting to URL', icon: '🌐' },
@@ -368,7 +368,7 @@ const ScraperPage = () => {
     } catch {
       clearInterval(interval);
       setStatus('error');
-      setErrorMsg('Network error – make sure the backend is running on port 5000.');
+      setErrorMsg('Network error – unable to connect to backend server. If using Render free tier, the backend may take ~30s to wake up.');
     }
   };
 

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 
-const API = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+const API = import.meta.env.VITE_API_BASE_URL || 'https://shopwiseai-pys5.onrender.com/api';
 
 export default function PriceAlertModal({ product, onClose }) {
   const { user } = useAuth();

@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { getProductVisual } from '../utils/productImages';
 import { sanitizeStoreUrl } from '../utils/urlHelper';
 
-const API = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+const API = import.meta.env.VITE_API_BASE_URL || 'https://shopwiseai-pys5.onrender.com/api';
 
 function StarRating({ rating = 0, size = 'sm' }) {
   const full = Math.floor(rating);

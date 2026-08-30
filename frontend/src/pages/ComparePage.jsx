@@ -3,7 +3,7 @@ import { useSearchParams, Link } from 'react-router-dom';
 import PlatformAdvisorCard from '../components/PlatformAdvisorCard';
 import { sanitizeStoreUrl } from '../utils/urlHelper';
 
-const API = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+const API = import.meta.env.VITE_API_BASE_URL || 'https://shopwiseai-pys5.onrender.com/api';
 
 function StarRating({ rating = 0 }) {
   const full = Math.floor(rating);

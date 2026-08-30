@@ -7,7 +7,7 @@ import PriceAdvisorModal from '../components/PriceAdvisorModal';
 import PriceAlertModal from '../components/PriceAlertModal';
 import AiBudgetAdvisorWidget from '../components/AiBudgetAdvisorWidget';
 
-const API = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+const API = import.meta.env.VITE_API_BASE_URL || 'https://shopwiseai-pys5.onrender.com/api';
 
 /* ─── Animated counter helper ─── */
 function Counter({ end, suffix = '', duration = 1800 }) {
@@ -717,7 +717,7 @@ export default function HomePage() {
               <span className="text-5xl block mb-3">⚠️</span>
               <h3 className="text-xl font-bold text-red-300 mb-2">Could Not Load Prices from Database</h3>
               <p className="text-xs text-slate-400 mb-6">
-                The backend API is unavailable. Make sure the backend server is running on port 5000 and PostgreSQL is connected.
+                The backend API is unavailable. Ensure the backend server is active and PostgreSQL database is connected. If using Render free tier, please allow ~30 seconds for server wake-up.
               </p>
               <button
                 onClick={() => fetchProducts()}

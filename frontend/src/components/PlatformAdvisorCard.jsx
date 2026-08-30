@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { sanitizeStoreUrl } from '../utils/urlHelper';
 
-const API = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+const API = import.meta.env.VITE_API_BASE_URL || 'https://shopwiseai-pys5.onrender.com/api';
 
 const PLATFORM_THEMES = {
   Amazon: {
