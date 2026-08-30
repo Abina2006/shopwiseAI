@@ -29,31 +29,13 @@ function App() {
             <Route path="login" element={<LoginPage />} />
             <Route path="register" element={<RegisterPage />} />
 
-            {/* Authenticated Gated App Pages (Home/Products, Compare, Scraper, Profile) */}
-            <Route
-              index
-              element={
-                <ProtectedRoute>
-                  <HomePage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="compare"
-              element={
-                <ProtectedRoute>
-                  <ComparePage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="scrape"
-              element={
-                <ProtectedRoute>
-                  <ScraperPage />
-                </ProtectedRoute>
-              }
-            />
+            {/* Public Browsing & Landing Pages */}
+            <Route index element={<HomePage />} />
+            <Route path="compare" element={<ComparePage />} />
+            <Route path="scrape" element={<ScraperPage />} />
+            <Route path="product/:id" element={<ProductDetailPage />} />
+
+            {/* Protected Account Pages (Require Login) */}
             <Route
               path="profile"
               element={
@@ -67,15 +49,6 @@ function App() {
               element={
                 <ProtectedRoute>
                   <PriceAlertsPage />
-                </ProtectedRoute>
-              }
-            />
-            
-            <Route
-              path="product/:id"
-              element={
-                <ProtectedRoute>
-                  <ProductDetailPage />
                 </ProtectedRoute>
               }
             />
