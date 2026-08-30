@@ -762,155 +762,157 @@ export default function HomePage() {
         <AiBudgetAdvisorWidget />
       </section>
       
-      {/* ── CATALOG SECTION ── */}
-      <section id="catalog-section" className="py-14 px-4 bg-slate-950/80">
-        <div className="max-w-7xl mx-auto">
-          {/* Category Pills */}
-          <div className="mb-8 flex flex-wrap gap-2 justify-center">
-            {categories.map((cat) => (
-              <button
-                key={cat.name}
-                onClick={() => handleCategorySelect(cat.name)}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all border ${
-                  selectedCategory === cat.name
-                    ? 'bg-indigo-600 border-indigo-500 text-white shadow-md shadow-indigo-600/30'
-                    : 'bg-slate-800/80 hover:bg-slate-750 border-slate-700 text-slate-300'
-                }`}
-              >
-                <span>{cat.icon}</span>
-                <span>{cat.name}</span>
-              </button>
-            ))}
-          </div>
-
-          {/* Results Info */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-            <div>
-              <div className="flex items-center gap-2.5">
-                <h2 className="text-xl font-bold text-white">
-                  {selectedCategory !== 'All' ? `${selectedCategory} Products` : 'All Products Catalog'}
-                </h2>
-                <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  Live Market Rates
-                </span>
-              </div>
-              <p className="text-slate-500 text-xs mt-0.5">
-                {products.length} product{products.length !== 1 ? 's' : ''} available in database
-                {searchQuery ? ` matching "${searchQuery}"` : ''}
-              </p>
-            </div>
-
-            <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
-              {/* Batch Live Sync All Stores Button */}
-              <button
-                onClick={async () => {
-                  setSyncAllLoading(true);
-                  try {
-                    const res = await fetch(`${API}/products/sync-all-live`, { method: 'POST' });
-                    const json = await res.json();
-                    if (json.success) {
-                      setSyncAllSuccess(true);
-                      await fetchProducts(searchQuery, selectedCategory);
-                      setTimeout(() => setSyncAllSuccess(false), 5000);
-                    }
-                  } catch {
-                    /* silent */
-                  }
-                  setSyncAllLoading(false);
-                }}
-                disabled={syncAllLoading}
-                className="bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 hover:text-emerald-200 text-xs font-semibold px-3.5 py-2 rounded-xl transition-all shadow-md flex items-center gap-1.5 disabled:opacity-50"
-              >
-                <span className={syncAllLoading ? "animate-spin" : ""}>⚡</span>
-                {syncAllLoading ? "Syncing All 36 Products Live..." : "Sync All Stores Live"}
-              </button>
-
-              {(searchQuery || selectedCategory !== 'All') && (
+      {/* ── CATALOG SECTION (Only shown when user performs a search or selects a category filter) ── */}
+      {(searchQuery.trim() || selectedCategory !== 'All') && (
+        <section id="catalog-section" className="py-14 px-4 bg-slate-950/80">
+          <div className="max-w-7xl mx-auto">
+            {/* Category Pills */}
+            <div className="mb-8 flex flex-wrap gap-2 justify-center">
+              {categories.map((cat) => (
                 <button
-                  onClick={() => {
-                    setSearchQuery('');
-                    setSelectedCategory('All');
-                    setSearchParams({});
-                  }}
-                  className="text-xs text-indigo-400 hover:underline"
+                  key={cat.name}
+                  onClick={() => handleCategorySelect(cat.name)}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all border ${
+                    selectedCategory === cat.name
+                      ? 'bg-indigo-600 border-indigo-500 text-white shadow-md shadow-indigo-600/30'
+                      : 'bg-slate-800/80 hover:bg-slate-750 border-slate-700 text-slate-300'
+                  }`}
                 >
-                  Clear filters ✕
+                  <span>{cat.icon}</span>
+                  <span>{cat.name}</span>
                 </button>
-              )}
+              ))}
             </div>
-          </div>
 
-          {/* Sync All Success Banner */}
-          {syncAllSuccess && (
-            <div className="mb-6 p-3 bg-emerald-950/60 border border-emerald-500/40 rounded-2xl text-xs text-emerald-300 flex items-center gap-2 shadow-lg animate-in fade-in duration-200">
-              <span className="text-base">✅</span>
-              <span><strong>Live Sync Complete!</strong> All catalog prices have been updated in real-time across Meesho, Flipkart, Amazon, and Croma.</span>
-            </div>
-          )}
+            {/* Results Info */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+              <div>
+                <div className="flex items-center gap-2.5">
+                  <h2 className="text-xl font-bold text-white">
+                    {selectedCategory !== 'All' ? `${selectedCategory} Products` : 'Search Results'}
+                  </h2>
+                  <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    Live Market Rates
+                  </span>
+                </div>
+                <p className="text-slate-500 text-xs mt-0.5">
+                  {products.length} product{products.length !== 1 ? 's' : ''} available in database
+                  {searchQuery ? ` matching "${searchQuery}"` : ''}
+                </p>
+              </div>
 
-          {/* Catalog Grid */}
-          {fetchError ? (
-            <div className="text-center py-20 px-6 border border-dashed border-red-800/60 rounded-3xl bg-red-950/20 max-w-3xl mx-auto">
-              <span className="text-5xl block mb-3">⚠️</span>
-              <h3 className="text-xl font-bold text-red-300 mb-2">Could Not Load Prices from Database</h3>
-              <p className="text-xs text-slate-400 mb-6">
-                The backend API is unavailable. Ensure the backend server is active and PostgreSQL database is connected. If using Render free tier, please allow ~30 seconds for server wake-up.
-              </p>
-              <button
-                onClick={() => fetchProducts()}
-                className="inline-flex items-center gap-2 bg-red-700 hover:bg-red-600 text-white font-bold px-6 py-3 rounded-2xl transition-all text-sm"
-              >
-                🔄 Retry Loading Products
-              </button>
+              <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+                {/* Batch Live Sync All Stores Button */}
+                <button
+                  onClick={async () => {
+                    setSyncAllLoading(true);
+                    try {
+                      const res = await fetch(`${API}/products/sync-all-live`, { method: 'POST' });
+                      const json = await res.json();
+                      if (json.success) {
+                        setSyncAllSuccess(true);
+                        await fetchProducts(searchQuery, selectedCategory);
+                        setTimeout(() => setSyncAllSuccess(false), 5000);
+                      }
+                    } catch {
+                      /* silent */
+                    }
+                    setSyncAllLoading(false);
+                  }}
+                  disabled={syncAllLoading}
+                  className="bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 hover:text-emerald-200 text-xs font-semibold px-3.5 py-2 rounded-xl transition-all shadow-md flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  <span className={syncAllLoading ? "animate-spin" : ""}>⚡</span>
+                  {syncAllLoading ? "Syncing All Products Live..." : "Sync All Stores Live"}
+                </button>
+
+                {(searchQuery || selectedCategory !== 'All') && (
+                  <button
+                    onClick={() => {
+                      setSearchQuery('');
+                      setSelectedCategory('All');
+                      setSearchParams({});
+                    }}
+                    className="text-xs text-indigo-400 hover:underline"
+                  >
+                    Clear filters ✕
+                  </button>
+                )}
+              </div>
             </div>
-          ) : loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden animate-pulse">
-                  <div className="h-48 bg-slate-800" />
-                  <div className="p-5 space-y-3">
-                    <div className="h-4 bg-slate-800 rounded-lg w-4/5" />
-                    <div className="h-3 bg-slate-800 rounded-lg w-1/3" />
-                    <div className="h-6 bg-slate-800 rounded-lg w-1/2" />
-                    <div className="h-8 bg-slate-800 rounded-xl" />
-                    <div className="h-16 bg-slate-800 rounded-xl" />
-                    <div className="flex gap-2">
-                      <div className="h-8 bg-slate-800 rounded-xl flex-1" />
-                      <div className="h-8 bg-slate-800 rounded-xl flex-1" />
+
+            {/* Sync All Success Banner */}
+            {syncAllSuccess && (
+              <div className="mb-6 p-3 bg-emerald-950/60 border border-emerald-500/40 rounded-2xl text-xs text-emerald-300 flex items-center gap-2 shadow-lg animate-in fade-in duration-200">
+                <span className="text-base">✅</span>
+                <span><strong>Live Sync Complete!</strong> All catalog prices have been updated in real-time across Meesho, Flipkart, Amazon, and Croma.</span>
+              </div>
+            )}
+
+            {/* Catalog Grid */}
+            {fetchError ? (
+              <div className="text-center py-20 px-6 border border-dashed border-red-800/60 rounded-3xl bg-red-950/20 max-w-3xl mx-auto">
+                <span className="text-5xl block mb-3">⚠️</span>
+                <h3 className="text-xl font-bold text-red-300 mb-2">Could Not Load Prices from Database</h3>
+                <p className="text-xs text-slate-400 mb-6">
+                  The backend API is unavailable. Ensure the backend server is active and PostgreSQL database is connected. If using Render free tier, please allow ~30 seconds for server wake-up.
+                </p>
+                <button
+                  onClick={() => fetchProducts()}
+                  className="inline-flex items-center gap-2 bg-red-700 hover:bg-red-600 text-white font-bold px-6 py-3 rounded-2xl transition-all text-sm"
+                >
+                  🔄 Retry Loading Products
+                </button>
+              </div>
+            ) : loading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <div key={i} className="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden animate-pulse">
+                    <div className="h-48 bg-slate-800" />
+                    <div className="p-5 space-y-3">
+                      <div className="h-4 bg-slate-800 rounded-lg w-4/5" />
+                      <div className="h-3 bg-slate-800 rounded-lg w-1/3" />
+                      <div className="h-6 bg-slate-800 rounded-lg w-1/2" />
+                      <div className="h-8 bg-slate-800 rounded-xl" />
+                      <div className="h-16 bg-slate-800 rounded-xl" />
+                      <div className="flex gap-2">
+                        <div className="h-8 bg-slate-800 rounded-xl flex-1" />
+                        <div className="h-8 bg-slate-800 rounded-xl flex-1" />
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          ) : products.length === 0 ? (
-            <div className="text-center py-20 px-6 border border-dashed border-slate-800 rounded-3xl bg-slate-900/40 max-w-3xl mx-auto">
-              <span className="text-5xl block mb-3">🕸️</span>
-              <h3 className="text-xl font-bold text-white mb-2">No Live Products in Catalog</h3>
-              <p className="text-xs text-slate-400 mb-6">
-                No products match your search. Use the Live Scraper to ingest real-time product links.
-              </p>
-              <Link
-                to="/scrape"
-                className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold px-6 py-3 rounded-2xl transition-all shadow-lg shadow-indigo-600/30 text-sm"
-              >
-                <span>🚀 Open Live Scraper Dashboard</span>
-              </Link>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-              {products.map((p) => (
-                <ProductCard 
-                  key={p.id} 
-                  product={p} 
-                  onOpenAdvisor={(prod) => setActiveAdvisorProduct(prod)}
-                  onOpenAlert={(prod) => setActiveAlertProduct(prod)}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
+                ))}
+              </div>
+            ) : products.length === 0 ? (
+              <div className="text-center py-20 px-6 border border-dashed border-slate-800 rounded-3xl bg-slate-900/40 max-w-3xl mx-auto">
+                <span className="text-5xl block mb-3">🕸️</span>
+                <h3 className="text-xl font-bold text-white mb-2">No Live Products Found</h3>
+                <p className="text-xs text-slate-400 mb-6">
+                  No products match your search. Use the Live Scraper to ingest real-time product links.
+                </p>
+                <Link
+                  to="/scrape"
+                  className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold px-6 py-3 rounded-2xl transition-all shadow-lg shadow-indigo-600/30 text-sm"
+                >
+                  <span>🚀 Open Live Scraper Dashboard</span>
+                </Link>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                {products.map((p) => (
+                  <ProductCard 
+                    key={p.id} 
+                    product={p} 
+                    onOpenAdvisor={(prod) => setActiveAdvisorProduct(prod)}
+                    onOpenAlert={(prod) => setActiveAlertProduct(prod)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* ── HOW IT WORKS ── */}
       <section className="py-14 px-4 bg-gradient-to-b from-transparent to-slate-900/50">
