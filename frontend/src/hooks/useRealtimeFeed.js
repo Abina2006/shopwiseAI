@@ -7,7 +7,7 @@ export function useRealtimeFeed() {
   const [latestProductScraped, setLatestProductScraped] = useState(null);
 
   useEffect(() => {
-    const API = import.meta.env.VITE_API_BASE_URL || 'https://shopwiseai-pys5.onrender.com/api';
+    const API = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
     const streamUrl = `${API}/products/live-stream`;
     const eventSource = new EventSource(streamUrl);
 

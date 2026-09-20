@@ -11,7 +11,8 @@ export async function getSmartShoppingAdvice(productId) {
     include: {
       listings: {
         include: {
-          reviews: { take: 5, orderBy: { scrapedAt: 'desc' } }
+          reviews: { take: 5, orderBy: { scrapedAt: 'desc' } },
+          priceHistory: { orderBy: { recordedAt: 'asc' }, take: 30 }
         },
         orderBy: { price: 'asc' }
       }
@@ -31,14 +32,28 @@ export async function getSmartShoppingAdvice(productId) {
   // 1. Get Platform Advisor Recommendation
   const platformAdv = await getPlatformRecommendation(product.id);
 
-  // 2. Compute 30-Day Simulated Historical Price Trend & Prediction
-  const histTrend = [
-    { date: '30 days ago', price: Math.round(minPrice * 1.14), event: 'Standard Market Rate' },
-    { date: '21 days ago', price: Math.round(minPrice * 1.09), event: 'Mid-Month Discount' },
-    { date: '14 days ago', price: Math.round(minPrice * 1.05), event: 'Flash Deal' },
-    { date: '7 days ago', price: Math.round(minPrice * 1.02), event: 'Weekly Promo' },
-    { date: 'Today (Live)', price: minPrice, event: `Best Price on ${bestListing.sellerName || 'Market'}` }
-  ];
+  // 2. Real Recorded Historical Price Trend (never fabricated)
+  const allHistory = listings
+    .flatMap(l => (l.priceHistory || []).map(h => ({
+      price: parseFloat(h.price),
+      recordedAt: h.recordedAt,
+      sellerName: l.sellerName
+    })))
+    .sort((a, b) => new Date(a.recordedAt) - new Date(b.recordedAt));
+
+  const histTrend = allHistory.map(h => ({
+    date: new Date(h.recordedAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }),
+    price: h.price,
+    event: `Recorded on ${h.sellerName}`
+  }));
+
+  if (histTrend.length === 0 && minPrice > 0) {
+    histTrend.push({
+      date: 'Current',
+      price: minPrice,
+      event: `Verified Price on ${bestListing.sellerName || 'Market'}`
+    });
+  }
 
   // 3. AI Price Drop Prediction Logic
   const savingsPct = maxPrice > minPrice ? Math.round(((maxPrice - minPrice) / maxPrice) * 100) : 0;

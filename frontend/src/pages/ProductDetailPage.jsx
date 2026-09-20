@@ -3,6 +3,8 @@ import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getProductVisual } from '../utils/productImages';
 import { sanitizeStoreUrl } from '../utils/urlHelper';
+import PriceVerificationBadge, { PriceDisclaimerBar } from '../components/PriceVerificationBadge';
+import PriceVariationWidget from '../components/PriceVariationWidget';
 
 const API = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
@@ -45,33 +47,93 @@ function DetailSkeleton() {
   );
 }
 
-function SparkChart({ lowestPrice }) {
-  const base = lowestPrice || 1000;
-  const pts = [base*1.18, base*1.12, base*1.20, base*1.08, base*1.15, base*1.05, base*1.10, base];
-  const max = Math.max(...pts), min = Math.min(...pts), range = max - min || 1;
+/**
+ * Real Price History Chart — fetches actual recorded prices from DB.
+ * Falls back to a simple static display if no history data is available.
+ */
+function RealPriceHistoryChart({ productId, lowestPrice }) {
+  const [historyData, setHistoryData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const API = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+
+  useEffect(() => {
+    if (!productId) return;
+    fetch(`${API}/products/${productId}/price-history`)
+      .then(r => r.json())
+      .then(json => {
+        if (json.success && json.data) setHistoryData(json.data);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [productId]);
+
+  // Flatten all history points across all sellers
+  const allPoints = historyData
+    .flatMap(s => s.history.map(h => ({ ...h, seller: s.sellerName })))
+    .sort((a, b) => new Date(a.recordedAt) - new Date(b.recordedAt));
+
+  if (loading) {
+    return (
+      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 animate-pulse">
+        <div className="h-16 bg-slate-800 rounded-xl" />
+      </div>
+    );
+  }
+
+  if (allPoints.length < 2) {
+    return (
+      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4">
+        <div className="flex items-center justify-between mb-2">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">📈 Price History</h4>
+          <span className="text-[11px] text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full">Not enough data yet</span>
+        </div>
+        <p className="text-[10px] text-slate-600">
+          Price history will appear here as prices are recorded over time.
+          {lowestPrice > 0 && ` Current reference price: ₹${Number(lowestPrice).toLocaleString('en-IN')}.`}
+        </p>
+      </div>
+    );
+  }
+
+  const prices = allPoints.map(p => p.price);
+  const maxP = Math.max(...prices), minP = Math.min(...prices), range = maxP - minP || 1;
   const W = 300, H = 70;
-  const coords = pts.map((p, i) => ({ x: (i/(pts.length-1))*W, y: H-((p-min)/range)*(H-12)-6 }));
-  const pathD = coords.map((c,i) => `${i===0?'M':'L'} ${c.x.toFixed(1)},${c.y.toFixed(1)}`).join(' ');
+  const coords = allPoints.map((p, i) => ({
+    x: (i / (allPoints.length - 1)) * W,
+    y: H - ((p.price - minP) / range) * (H - 12) - 6
+  }));
+  const pathD = coords.map((c, i) => `${i === 0 ? 'M' : 'L'} ${c.x.toFixed(1)},${c.y.toFixed(1)}`).join(' ');
   const areaD = `${pathD} L ${W},${H} L 0,${H} Z`;
+  const isDown = prices[prices.length - 1] <= prices[0];
+
   return (
     <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4">
       <div className="flex items-center justify-between mb-2">
-        <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">📈 Price Trend (30 Days)</h4>
-        <span className="text-[11px] text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">NOW AT LOWEST ✓</span>
+        <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">📈 Price History</h4>
+        <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+          isDown ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20' : 'text-amber-400 bg-amber-500/10 border border-amber-500/20'
+        }`}>
+          {allPoints.length} data point{allPoints.length !== 1 ? 's' : ''} recorded
+        </span>
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-16">
         <defs>
-          <linearGradient id="spkGrad" x1="0" y1="0" x2="0" y2="1">
+          <linearGradient id="histGrad" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#6366f1" stopOpacity="0.3" />
             <stop offset="100%" stopColor="#6366f1" stopOpacity="0" />
           </linearGradient>
         </defs>
-        <path d={areaD} fill="url(#spkGrad)" />
+        <path d={areaD} fill="url(#histGrad)" />
         <path d={pathD} fill="none" stroke="#6366f1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        {coords.map((c,i) => <circle key={i} cx={c.x} cy={c.y} r={i===coords.length-1?4:2.5} fill={i===coords.length-1?'#10b981':'#6366f1'} stroke={i===coords.length-1?'#064e3b':'none'} strokeWidth="2"/>)}
+        {coords.map((c, i) => (
+          <circle key={i} cx={c.x} cy={c.y} r={i === coords.length - 1 ? 4 : 2}
+            fill={i === coords.length - 1 ? '#10b981' : '#6366f1'}
+            stroke={i === coords.length - 1 ? '#064e3b' : 'none'} strokeWidth="2" />
+        ))}
       </svg>
       <div className="flex justify-between text-[10px] text-slate-500 mt-1 px-0.5">
-        <span>30d ago</span><span>15d ago</span><span className="text-emerald-400 font-bold">Today</span>
+        <span>{new Date(allPoints[0].recordedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
+        <span className="text-emerald-400 font-bold">Today ₹{Number(prices[prices.length - 1]).toLocaleString('en-IN')}</span>
       </div>
     </div>
   );
@@ -214,10 +276,16 @@ export default function ProductDetailPage() {
 
             <div className="bg-gradient-to-r from-emerald-950/60 to-slate-900 border border-emerald-500/30 rounded-2xl p-4 space-y-2">
               <div className="flex items-baseline gap-3">
-                <span className="text-4xl font-black text-emerald-400">₹{Math.round(Number(lowestPrice)).toLocaleString('en-IN')}</span>
-                {savings>0 && <span className="text-lg text-slate-500 line-through">₹{Math.round(Number(highestPrice)).toLocaleString('en-IN')}</span>}
+                <span className="text-4xl font-black text-emerald-400">₹{Number(lowestPrice).toLocaleString('en-IN')}</span>
+                {savings>0 && <span className="text-lg text-slate-500 line-through">₹{Number(highestPrice).toLocaleString('en-IN')}</span>}
               </div>
               <p className="text-xs text-emerald-300/80 font-semibold">🏆 Lowest across {listings.length} store{listings.length!==1?'s':''} • Best on {bestListing.sellerName}</p>
+              <PriceDisclaimerBar
+                verificationStatus={bestListing.verificationStatus || 'reference'}
+                lastUpdated={bestListing.lastUpdated}
+                sellerName={bestListing.sellerName}
+                marketplaceUrl={sanitizeStoreUrl(bestListing.sellerUrl, product.name, bestListing.sellerName)}
+              />
             </div>
 
             <a
@@ -227,12 +295,12 @@ export default function ProductDetailPage() {
             >🛒 Buy on {bestListing.sellerName} — Best Price ↗</a>
 
             <div className="flex gap-2">
-              <Link to={`/compare?ids=${product.id}`} className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-750 border border-slate-700 hover:border-indigo-500/40 text-indigo-300 hover:text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2 transition-all">⚖️ Compare</Link>
+              <Link to={`/compare/${product.id}`} className="flex-1 py-2.5 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 text-indigo-300 hover:text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2 transition-all">⚖️ Compare Prices</Link>
               <Link to="/alerts" state={{productId:product.id,productName:product.name,lowestPrice}} className="flex-1 py-2.5 bg-slate-800 border border-slate-700 hover:border-amber-500/40 text-amber-300 hover:text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2 transition-all">🔔 Set Alert</Link>
               <button onClick={fetchAI} className="flex-1 py-2.5 bg-gradient-to-r from-purple-600/20 to-indigo-600/20 hover:from-purple-600/30 hover:to-indigo-600/30 border border-indigo-500/30 hover:border-indigo-400 text-indigo-300 text-xs font-bold rounded-xl flex items-center justify-center gap-2 transition-all">🤖 AI Review</button>
             </div>
 
-            <SparkChart lowestPrice={lowestPrice} />
+            <RealPriceHistoryChart productId={id} lowestPrice={lowestPrice} />
           </div>
         </div>
 
@@ -254,7 +322,7 @@ export default function ProductDetailPage() {
               {icon:'📦',title:'Category',value:product.category},
               {icon:'🏷️',title:'Brand',value:product.brand||'Not specified'},
               {icon:'🏪',title:'Available On',value:listings.map(l=>l.sellerName).join(', ')||'N/A'},
-              {icon:'💰',title:'Price Range',value:`₹${Math.round(Number(lowestPrice)).toLocaleString('en-IN')} – ₹${Math.round(Number(highestPrice)).toLocaleString('en-IN')}`},
+              {icon:'💰',title:'Price Range',value:`₹${Number(lowestPrice).toLocaleString('en-IN')} – ₹${Number(highestPrice).toLocaleString('en-IN')}`},
               {icon:'⭐',title:'Rating',value:`${Number(primaryListing.rating||4.5).toFixed(1)} / 5.0 stars`},
               {icon:'💚',title:'Best Savings',value:savings>0?`Save ${savings}% vs highest price`:'Competitive pricing'},
             ].map((item,i)=>(
@@ -274,6 +342,7 @@ export default function ProductDetailPage() {
             {listings.length===0 && <p className="text-slate-500 text-sm py-8 text-center">No store listings found.</p>}
             {listings.map((l,i)=>{
               const isLowest=parseFloat(l.price)===lowestPrice;
+              const mktUrl = sanitizeStoreUrl(l.sellerUrl, product.name, l.sellerName);
               return (
                 <div key={i} className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl border transition-all ${isLowest?'bg-emerald-950/30 border-emerald-500/40 shadow-lg':'bg-slate-900/60 border-slate-800'}`}>
                   <div className="flex items-center gap-3">
@@ -287,11 +356,17 @@ export default function ProductDetailPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-3 sm:flex-col sm:items-end">
-                    <span className={`text-xl font-black ${isLowest?'text-emerald-400':'text-white'}`}>₹{Math.round(Number(l.price)).toLocaleString('en-IN')}</span>
+                    <span className={`text-xl font-black ${isLowest?'text-emerald-400':'text-white'}`}>₹{Number(l.price).toLocaleString('en-IN')}</span>
                     <a href={sanitizeStoreUrl(l.sellerUrl,product.name,l.sellerName)} target="_blank" rel="noreferrer noopener" referrerPolicy="no-referrer"
                       className={`text-xs font-bold px-4 py-2 rounded-xl transition-all ${isLowest?'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg':'bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700'}`}
                     >Buy on {l.sellerName} ↗</a>
                   </div>
+                  <PriceDisclaimerBar
+                    verificationStatus={l.verificationStatus || 'reference'}
+                    lastUpdated={l.lastUpdated}
+                    sellerName={l.sellerName}
+                    marketplaceUrl={mktUrl}
+                  />
                 </div>
               );
             })}

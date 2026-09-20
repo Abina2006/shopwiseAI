@@ -32,6 +32,8 @@ model Product {
   category    String
   brand       String
   imageUrl    String?          @map("image_url")
+  imageSource String?          @map("image_source")
+  imageVerified Boolean        @default(false) @map("image_verified")
   description String?
   createdAt               DateTime                 @default(now()) @map("created_at")
   listings                ProductListing[]
@@ -43,21 +45,34 @@ model Product {
 }
 
 model ProductListing {
-  id            String             @id @default(uuid()) @db.Uuid
-  productId     String             @map("product_id") @db.Uuid
-  sellerName    String             @map("seller_name")
-  sellerUrl     String             @map("seller_url")
-  price         Decimal            @db.Decimal(10, 2)
-  currency      String             @default("INR")
-  rating        Float?
-  reviewCount   Int                @default(0) @map("review_count")
-  deliveryTime  String?            @default("2-3 Days") @map("delivery_time")
-  offers        String?            @default("Up to 10% Instant Bank Discount") @map("offers")
-  lastScrapedAt DateTime           @default(now()) @map("last_scraped_at")
-  product       Product            @relation(fields: [productId], references: [id], onDelete: Cascade)
-  priceHistory  PriceHistory[]
-  priceAlerts   PriceAlert[]
-  reviews       Review[]
+  id              String             @id @default(uuid()) @db.Uuid
+  productId       String             @map("product_id") @db.Uuid
+  sellerName      String             @map("seller_name")
+  sellerUrl       String             @map("seller_url")
+  price           Decimal            @db.Decimal(10, 2)
+  originalPrice   Decimal?           @map("original_price") @db.Decimal(10, 2)
+  discount        Int?               @default(0)
+  currency        String             @default("INR")
+  variant         String?
+  model           String?
+  rating          Float?
+  reviewCount     Int                @default(0) @map("review_count")
+  deliveryTime    String?            @default("2-3 Days") @map("delivery_time")
+  offers          String?            @default("Up to 10% Instant Bank Discount") @map("offers")
+  availability    String?            @default("IN_STOCK")
+  priceStatus     String?            @default("VERIFIED") @map("price_status")
+  imageStatus     String?            @default("VERIFIED") @map("image_status")
+  matchConfidence String?            @default("EXACT_MATCH") @map("match_confidence")
+  matchScore      Int?               @default(100) @map("match_score")
+  failureReason   String?            @map("failure_reason")
+  lastScrapedAt   DateTime           @default(now()) @map("last_scraped_at")
+  lastCheckedAt   DateTime?          @default(now()) @map("last_checked_at")
+  priceVerifiedAt DateTime?          @map("price_verified_at")
+  priceSource     String?            @default("catalog") @map("price_source")
+  product         Product            @relation(fields: [productId], references: [id], onDelete: Cascade)
+  priceHistory    PriceHistory[]
+  priceAlerts     PriceAlert[]
+  reviews         Review[]
 
   @@index([productId])
   @@index([sellerName])

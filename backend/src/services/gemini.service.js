@@ -111,6 +111,11 @@ export async function analyzeProductReviews(productName, reviews = [], listings 
 
     const prompt = `You are an expert e-commerce product and pricing analyst. Analyze the customer reviews and available stores for the product "${productName}".
     
+CRITICAL INTEGRITY RULE:
+- You MUST use ONLY the verified prices provided in the "Available Stores & Pricing" list below.
+- You MUST NEVER invent, guess, modify, or fabricate marketplace prices.
+- Set "bestAppPrice" strictly equal to the price of that seller in the provided store list.
+
 Available Stores & Pricing:
 ${storeData || 'Standard e-commerce marketplaces'}
 
@@ -131,7 +136,7 @@ Return your response strictly in valid JSON format with the following schema:
   "pros": ["list 3 key advantages or compliments mentioned by users"],
   "cons": ["list 2 key drawbacks, concerns, or caveats"],
   "bestAppToBuy": "Name of the single best app/website store to buy this from (e.g. Flipkart, Amazon, Croma for Electronics; Meesho, Myntra for Fashion/Cosmetics)",
-  "bestAppPrice": number (the price on that recommended store),
+  "bestAppPrice": number (exact price from the provided store list),
   "bestAppReason": "1 concise sentence explaining WHY this specific app is best (e.g. cheapest price, best rating, fastest delivery, or maximum savings)",
   "verdict": "Highly Recommended" | "Recommended Buy" | "Consider Alternatives" | "Not Recommended"
 }`;
