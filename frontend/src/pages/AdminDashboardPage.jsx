@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getProductVisual } from '../utils/productImages';
 
 const API = import.meta.env.VITE_API_BASE_URL || 'https://shopwiseai-pys5.onrender.com/api';
 
@@ -138,7 +139,17 @@ const AdminDashboardPage = () => {
                     return (
                       <tr key={p.id} className="hover:bg-slate-800/50 transition-colors">
                         <td className="p-4 font-semibold text-white flex items-center gap-3">
-                          <img src={p.imageUrl} alt="" className="w-8 h-8 rounded-lg object-cover bg-slate-800" />
+                          {(() => {
+                            const visual = getProductVisual(p);
+                            return (
+                              <img
+                                src={p.imageUrl || visual.fallbackImg}
+                                alt={p.name}
+                                className="w-8 h-8 rounded-lg object-cover bg-slate-800"
+                                onError={(e) => { e.target.src = visual.fallbackImg; }}
+                              />
+                            );
+                          })()}
                           <span>{p.name}</span>
                         </td>
                         <td className="p-4"><span className="bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-2 py-0.5 rounded-lg">{p.category}</span></td>

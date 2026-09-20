@@ -148,7 +148,7 @@ export default function PriceAdvisorModal({ product, onClose }) {
                         ₹{Number(st.price).toLocaleString('en-IN')}
                       </span>
                       <a
-                        href={sanitizeStoreUrl(st.storeUrl, advice.productName, st.store)}
+                        href={sanitizeStoreUrl(st.storeUrl, product?.name, st.store)}
                         target="_blank"
                         rel="noreferrer noopener"
                         referrerPolicy="no-referrer"

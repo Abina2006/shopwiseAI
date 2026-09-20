@@ -1,7 +1,6 @@
-import { PrismaClient } from '@prisma/client';
+import prisma from '../config/db.js';
 import { broadcastEvent, broadcastScraperLog } from './realtime.service.js';
 
-const prisma = new PrismaClient();
 
 /**
  * Verified Real-Time Live Market Price Table for Catalog Items
@@ -50,26 +49,23 @@ const LIVE_MARKET_REGISTRY = {
     bigbasket: { price: 35.00, rating: 4.5, reviewCount: 6100, url: 'https://www.bigbasket.com/ps/?q=santoor+soap' }
   },
 
-  // Smartphones
+  // Smartphones — iPhones & flagship Android are NOT available on Meesho
   'iphone 15': {
-    meesho: { price: 68999.00, rating: 4.3, reviewCount: 45, url: 'https://www.meesho.com/search?q=iphone+15' },
     flipkart: { price: 65999.00, rating: 4.7, reviewCount: 48200, url: 'https://www.flipkart.com/search?q=iphone+15' },
     amazon: { price: 66999.00, rating: 4.6, reviewCount: 31200, url: 'https://www.amazon.in/s?k=iphone+15' },
     croma: { price: 69900.00, rating: 4.6, reviewCount: 2100, url: 'https://www.croma.com/searchB?q=iphone+15' }
   },
   'galaxy s24': {
-    meesho: { price: 77999.00, rating: 4.4, reviewCount: 30, url: 'https://www.meesho.com/search?q=samsung+galaxy+s24' },
     flipkart: { price: 74999.00, rating: 4.6, reviewCount: 12400, url: 'https://www.flipkart.com/search?q=samsung+galaxy+s24' },
     amazon: { price: 74999.00, rating: 4.6, reviewCount: 18900, url: 'https://www.amazon.in/s?k=samsung+galaxy+s24' },
     croma: { price: 79999.00, rating: 4.5, reviewCount: 890, url: 'https://www.croma.com/searchB?q=samsung+galaxy+s24' }
   },
 
-  // Laptops
+  // Laptops — MacBooks & premium laptops are NOT available on Meesho
   'macbook': {
-    meesho: { price: 92990.00, rating: 4.5, reviewCount: 15, url: 'https://www.meesho.com/search?q=macbook+air+m3' },
-    flipkart: { price: 89990.00, rating: 4.8, reviewCount: 4200, url: 'https://www.flipkart.com/search?q=macbook+air+m3' },
-    amazon: { price: 89990.00, rating: 4.7, reviewCount: 8900, url: 'https://www.amazon.in/s?k=macbook+air+m3' },
-    croma: { price: 94900.00, rating: 4.7, reviewCount: 1420, url: 'https://www.croma.com/searchB?q=macbook+air+m3' }
+    flipkart: { price: 89990.00, rating: 4.8, reviewCount: 4200, url: 'https://www.flipkart.com/search?q=macbook+pro+m4' },
+    amazon: { price: 89990.00, rating: 4.7, reviewCount: 8900, url: 'https://www.amazon.in/s?k=macbook+pro+m4' },
+    croma: { price: 94900.00, rating: 4.7, reviewCount: 1420, url: 'https://www.croma.com/searchB?q=macbook+pro+m4' }
   }
 };
 
@@ -109,16 +105,31 @@ export async function syncProductLivePrices(productId) {
     // Dynamic real-time calculation based on product base price
     const currentPrices = product.listings.map(l => parseFloat(l.price) || 0).filter(p => p > 0);
     const basePrice = currentPrices.length > 0 ? Math.min(...currentPrices) : 999;
-    
-    liveStores = [
-      {
+    const catLower = (product.category || '').toLowerCase();
+    const nameLower2 = nameLower;
+
+    // Meesho only carries: fashion, clothing, personal care, groceries, budget accessories.
+    // It does NOT carry: premium electronics, laptops, smartphones, TVs, appliances.
+    const meeshoExcluded = [
+      'laptop', 'macbook', 'iphone', 'ipad', 'galaxy', 'smartphone', 'mobile',
+      'television', 'tv', 'refrigerator', 'washing machine', 'air conditioner',
+      'camera', 'dslr', 'printer', 'monitor', 'desktop', 'gaming'
+    ].some(kw => nameLower2.includes(kw) || catLower.includes(kw));
+
+    const dynamicStores = [];
+
+    if (!meeshoExcluded) {
+      dynamicStores.push({
         sellerName: 'Meesho',
         price: Math.round(basePrice * 0.96),
         currency: 'INR',
         rating: 4.2,
         reviewCount: 340,
         sellerUrl: `https://www.meesho.com/search?q=${encodeURIComponent(product.name)}`
-      },
+      });
+    }
+
+    dynamicStores.push(
       {
         sellerName: 'Flipkart',
         price: basePrice,
@@ -143,7 +154,9 @@ export async function syncProductLivePrices(productId) {
         reviewCount: 410,
         sellerUrl: `https://www.croma.com/searchB?q=${encodeURIComponent(product.name)}`
       }
-    ];
+    );
+
+    liveStores = dynamicStores;
   }
 
   // Delete existing listings and upsert fresh real-time listings

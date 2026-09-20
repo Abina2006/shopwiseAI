@@ -1,7 +1,6 @@
 import { getPlatformRecommendation } from '../../services/platformAdvisor.service.js';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../../config/db.js';
 
-const prisma = new PrismaClient();
 
 /**
  * POST /api/platform-advisor

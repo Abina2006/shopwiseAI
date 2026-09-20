@@ -1,7 +1,6 @@
-import { PrismaClient } from '@prisma/client';
+import prisma from '../../config/db.js';
 import { sendPriceDropEmail } from '../../services/emailAlert.service.js';
 
-const prisma = new PrismaClient();
 
 /**
  * GET /api/price-alerts

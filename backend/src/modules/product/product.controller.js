@@ -1,6 +1,7 @@
-import { scrapeAndSave, getAllProducts, getProductById, getRelatedProducts, compareProducts } from './product.service.js';
+import { scrapeAndSave, getAllProducts, getProductById, getRelatedProducts, compareProducts, searchProducts } from './product.service.js';
 import { analyzeProductReviews } from '../../services/gemini.service.js';
 import { addClient, removeClient, broadcastScraperLog, broadcastEvent } from '../../services/realtime.service.js';
+import prisma from '../../config/db.js';
 
 /**
  * GET /api/products/live-stream
@@ -213,8 +214,6 @@ export async function createPriceAlertHandler(req, res) {
   try {
     const { id } = req.params;
     const { targetPrice, email } = req.body;
-    const { PrismaClient } = await import('@prisma/client');
-    const prisma = new PrismaClient();
 
     const product = await prisma.product.findUnique({
       where: { id },
@@ -279,5 +278,30 @@ export async function getBudgetAdvisorHandler(req, res) {
   }
 }
 
+/**
+ * GET /api/products/search?q=wireless+headphones
+ * Cross-platform multi-store product search (Amazon, Flipkart, Meesho)
+ */
+export async function searchProductsHandler(req, res) {
+  try {
+    const query = req.query.q || req.query.query || '';
+    if (!query.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Search query parameter "q" is required.',
+      });
+    }
 
-
+    const result = await searchProducts(query);
+    return res.status(200).json({
+      success: true,
+      data: result,
+    });
+  } catch (err) {
+    console.error('searchProductsHandler error:', err);
+    return res.status(500).json({
+      success: false,
+      message: err.message || 'Error searching products across platforms.',
+    });
+  }
+}

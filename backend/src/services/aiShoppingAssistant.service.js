@@ -1,7 +1,6 @@
-import { PrismaClient } from '@prisma/client';
+import prisma from '../config/db.js';
 import { getPlatformRecommendation } from './platformAdvisor.service.js';
 
-const prisma = new PrismaClient();
 
 /**
  * AI Smart Shopping Assistant & Price Drop Predictor

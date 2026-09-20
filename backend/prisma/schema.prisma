@@ -60,6 +60,10 @@ model ProductListing {
   reviews       Review[]
 
   @@index([productId])
+  @@index([sellerName])
+  @@index([price])
+  @@index([rating])
+  @@index([sellerUrl])
   @@map("product_listings")
 }
 

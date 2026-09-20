@@ -17,6 +17,8 @@ import HomePage from './pages/HomePage';
 import ProfilePage from './pages/ProfilePage';
 import PriceAlertsPage from './pages/PriceAlertsPage';
 import ProductDetailPage from './pages/ProductDetailPage';
+import WishlistPage from './pages/WishlistPage';
+import SearchPage from './pages/SearchPage';
 
 function App() {
   return (
@@ -25,10 +27,22 @@ function App() {
         <Routes>
           {/* Main User Site Routes */}
           <Route path="/" element={<Layout />}>
-            {/* Public Landing & Auth Routes */}
+            {/* Index Route — Landing / About ShopWise AI Page */}
             <Route index element={<HomePage />} />
             <Route path="login" element={<LoginPage />} />
             <Route path="register" element={<RegisterPage />} />
+
+            {/* Full Product Catalog */}
+            <Route path="catalog" element={<SearchPage />} />
+
+            {/* Multi-Store Real-Time Product Search */}
+            <Route path="search" element={<SearchPage />} />
+
+            {/* Product detail */}
+            <Route path="product/:id" element={<ProductDetailPage />} />
+
+            {/* Wishlist page */}
+            <Route path="wishlist" element={<WishlistPage />} />
 
             {/* Protected App Pages (Require Login) */}
             <Route
@@ -44,14 +58,6 @@ function App() {
               element={
                 <ProtectedRoute>
                   <ScraperPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="product/:id"
-              element={
-                <ProtectedRoute>
-                  <ProductDetailPage />
                 </ProtectedRoute>
               }
             />

@@ -177,7 +177,7 @@ const PlatformAdvisorCard = ({ product, listings = [] }) => {
             <span>🏷️</span> Best Price
           </div>
           <div className="text-xl font-black text-emerald-400">
-            ₹{Number(advice.bestPrice || 0).toLocaleString('en-IN')}
+            ₹{Math.round(Number(advice.bestPrice || 0)).toLocaleString('en-IN')}
           </div>
           <p className="text-[11px] text-slate-500 truncate">
             Lowest on {advice.bestPriceStore || platform}

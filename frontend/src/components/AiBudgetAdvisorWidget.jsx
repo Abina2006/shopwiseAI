@@ -5,16 +5,28 @@ const API = import.meta.env.VITE_API_BASE_URL || 'https://shopwiseai-pys5.onrend
 
 const CATEGORIES = [
   { name: 'All', icon: '🌟' },
-  { name: 'Audio', icon: '🎧' },
-  { name: 'Smartphones', icon: '📱' },
-  { name: 'Computers', icon: '💻' },
-  { name: 'Wearables', icon: '⌚' },
-  { name: 'Fashion', icon: '👕' },
-  { name: 'Personal Care', icon: '🧼' },
-  { name: 'Footwear', icon: '👟' },
-  { name: 'Groceries', icon: '🛒' },
-  { name: 'Appliances', icon: '🍳' },
+  { name: 'Mobiles & Tablets', icon: '📱' },
+  { name: 'Laptops & Computers', icon: '💻' },
+  { name: 'Electronics & Accessories', icon: '🎧' },
+  { name: 'Fashion & Clothing', icon: '👕' },
+  { name: 'Shoes & Footwear', icon: '👟' },
+  { name: 'Beauty & Personal Care', icon: '💄' },
+  { name: 'Home & Kitchen', icon: '🏠' },
+  { name: 'Furniture', icon: '🪑' },
+  { name: 'Toys & Baby Products', icon: '🧸' },
+  { name: 'Books & Stationery', icon: '📚' },
+  { name: 'Sports & Fitness', icon: '🏋️' },
+  { name: 'Grocery & Daily Essentials', icon: '🛒' },
+  { name: 'Jewellery & Accessories', icon: '💍' },
+  { name: 'Automotive', icon: '🚗' },
+  { name: 'Pet Supplies', icon: '🐶' },
+  { name: 'Tools & Home Improvement', icon: '🔧' },
+  { name: 'Gaming', icon: '🎮' },
+  { name: 'TV & Appliances', icon: '📺' },
+  { name: 'Travel & Luggage', icon: '🧳' },
+  { name: 'Gifts & Others', icon: '🎁' },
 ];
+
 
 export default function AiBudgetAdvisorWidget() {
   const [category, setCategory] = useState('All');

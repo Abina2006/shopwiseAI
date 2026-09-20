@@ -1,28 +1,34 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const Navbar = () => {
   const { user, isAuthenticated, isAdmin, logout } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      navigate(`/products?q=${encodeURIComponent(searchQuery.trim())}`);
+      // Navigate to Multi-Store Search page
+      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+      setMobileOpen(false);
     }
   };
 
+  const isActive = (path) => location.pathname === path;
+
   return (
-    <nav className="sticky top-0 z-50 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 text-white">
+    <nav className="sticky top-0 z-50 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 gap-4">
-          
+
           {/* Logo */}
           <div className="flex items-center flex-shrink-0">
-            <Link to="/" className="flex items-center space-x-2.5 group">
+            <Link to="/" className="flex items-center space-x-2.5 group" onClick={() => setMobileOpen(false)}>
               <span className="text-2xl transition-transform group-hover:scale-110">🛍️</span>
               <span className="font-extrabold text-lg sm:text-xl bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent tracking-tight">
                 ShopWise AI
@@ -30,7 +36,7 @@ const Navbar = () => {
             </Link>
           </div>
 
-          {/* Search Bar */}
+          {/* Search Bar — desktop */}
           <div className="flex-1 max-w-sm hidden lg:block">
             <form onSubmit={handleSearchSubmit} className="relative">
               <input
@@ -40,55 +46,56 @@ const Navbar = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full bg-slate-800/90 text-xs text-slate-100 placeholder-slate-400 pl-9 pr-4 py-2 rounded-xl border border-slate-700 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
               />
-              <span className="absolute left-3 top-2.5 text-xs text-slate-400">🔍</span>
+              <button type="submit" className="absolute left-3 top-2.5 text-xs text-slate-400 hover:text-indigo-400 transition-colors">🔍</button>
             </form>
           </div>
 
-          {/* Navigation Links & Auth Actions */}
-          <div className="flex items-center gap-6 sm:gap-8">
-            {/* Nav Menu */}
-            <div className="flex items-center space-x-4 sm:space-x-6">
+          {/* Desktop Nav Links */}
+          <div className="hidden md:flex items-center gap-5">
+            <Link
+              to="/search"
+              className={`text-sm font-medium transition-colors flex items-center gap-1.5 ${isActive('/search') ? 'text-indigo-400' : 'text-slate-300 hover:text-white'}`}
+            >
+              <span>🔍</span> Search Deals
+            </Link>
+            <Link
+              to="/compare"
+              className={`text-sm font-medium transition-colors flex items-center gap-1 ${isActive('/compare') ? 'text-indigo-400' : 'text-slate-300 hover:text-white'}`}
+            >
+              <span>📊</span> Compare Specs
+            </Link>
+            <Link
+              to="/scrape"
+              className="flex items-center gap-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 hover:text-indigo-200 border border-indigo-500/30 px-3 py-1.5 rounded-xl transition-all text-xs font-semibold"
+            >
+              <span>⚡</span> Link Scraper
+            </Link>
+            <Link
+              to="/wishlist"
+              className={`text-sm font-medium transition-colors flex items-center gap-1 ${isActive('/wishlist') ? 'text-indigo-400' : 'text-slate-300 hover:text-white'}`}
+            >
+              <span>❤️</span> Wishlist
+            </Link>
+            {isAuthenticated && (
               <Link
-                to="/"
-                className="text-slate-300 hover:text-white transition-colors text-sm font-medium hover:underline underline-offset-4"
+                to="/alerts"
+                className={`text-sm font-medium transition-colors ${isActive('/alerts') ? 'text-indigo-400' : 'text-slate-300 hover:text-white'}`}
               >
-                Home
+                🔔 Alerts
               </Link>
+            )}
+          </div>
 
-              <Link
-                to="/scrape"
-                className="flex items-center gap-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 hover:text-indigo-200 border border-indigo-500/30 px-3 py-1.5 rounded-xl transition-all text-xs font-semibold"
-              >
-                <span>⚡</span> Compare URL
-              </Link>
-
-              <Link
-                to="/compare"
-                className="flex items-center gap-1 text-slate-300 hover:text-white transition-colors text-sm font-medium hover:underline underline-offset-4"
-              >
-                <span>📊</span> Compare
-              </Link>
-
-              {isAuthenticated && (
-                <Link
-                  to="/alerts"
-                  className="text-slate-300 hover:text-white transition-colors text-sm font-medium"
-                >
-                  Price Alerts
-                </Link>
-              )}
-            </div>
-
-            {/* Vertical Divider */}
-            <div className="h-5 w-px bg-slate-700/80 hidden sm:block" />
-
-            {/* Auth State Buttons */}
-            <div className="flex items-center gap-3">
+          {/* Top Right Corner Auth Options (Desktop & Mobile) */}
+          <div className="flex items-center gap-2">
+            {/* Desktop Auth Buttons */}
+            <div className="hidden md:flex items-center gap-3">
+              <div className="h-5 w-px bg-slate-700/80" />
               {isAuthenticated ? (
                 <div className="relative">
                   <button
                     onClick={() => setDropdownOpen(!dropdownOpen)}
-                    className="flex items-center space-x-2 bg-slate-800 hover:bg-slate-750 px-3 py-1.5 rounded-xl border border-slate-700 transition-colors text-sm focus:outline-none"
+                    className="flex items-center space-x-2 bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-xl border border-slate-700 transition-colors text-sm focus:outline-none"
                   >
                     <span className="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center font-bold text-xs uppercase text-white shadow-sm">
                       {user?.name?.charAt(0)}
@@ -105,6 +112,20 @@ const Navbar = () => {
                         className="block px-4 py-2 text-xs font-medium text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
                       >
                         👤 My Profile
+                      </Link>
+                      <Link
+                        to="/wishlist"
+                        onClick={() => setDropdownOpen(false)}
+                        className="block px-4 py-2 text-xs font-medium text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
+                      >
+                        ❤️ My Wishlist
+                      </Link>
+                      <Link
+                        to="/alerts"
+                        onClick={() => setDropdownOpen(false)}
+                        className="block px-4 py-2 text-xs font-medium text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
+                      >
+                        🔔 Price Alerts
                       </Link>
                       {isAdmin && (
                         <Link
@@ -129,26 +150,131 @@ const Navbar = () => {
                   )}
                 </div>
               ) : (
-                <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-2.5">
                   <Link
                     to="/login"
-                    className="text-slate-300 hover:text-white transition-colors text-sm font-medium px-2 py-1"
+                    className="text-slate-200 hover:text-white transition-all text-xs font-semibold px-3.5 py-2 rounded-xl border border-slate-700 hover:border-indigo-500/50 bg-slate-800/80 hover:bg-slate-800 shadow-sm"
                   >
-                    Sign In
+                    🔑 Sign In
                   </Link>
                   <Link
                     to="/register"
-                    className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-xl transition-all shadow-lg shadow-indigo-600/20"
+                    className="bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-lg shadow-indigo-600/30 hover:shadow-indigo-600/50 hover:scale-[1.02] active:scale-95"
                   >
-                    Register
+                    ✨ Sign Up Free
                   </Link>
                 </div>
               )}
             </div>
-          </div>
 
+            {/* Mobile Top-Right Quick Sign In / User Icon */}
+            <div className="flex md:hidden items-center gap-2">
+              {!isAuthenticated ? (
+                <Link
+                  to="/login"
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all shadow-md shadow-indigo-600/30"
+                >
+                  Sign In
+                </Link>
+              ) : (
+                <Link
+                  to="/profile"
+                  className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center font-bold text-xs uppercase text-white shadow-sm border border-indigo-400/30"
+                >
+                  {user?.name?.charAt(0)}
+                </Link>
+              )}
+
+              {/* Mobile hamburger */}
+              <button
+                className="flex items-center justify-center w-9 h-9 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 hover:text-white transition-colors"
+                onClick={() => setMobileOpen(!mobileOpen)}
+                aria-label="Toggle menu"
+              >
+                {mobileOpen ? '✕' : '☰'}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
+
+      {/* Mobile Menu Drawer */}
+      {mobileOpen && (
+        <div className="md:hidden border-t border-slate-800 bg-slate-900/98 backdrop-blur-md px-4 py-4 space-y-3 animate-in slide-in-from-top duration-200">
+          {/* Mobile Search */}
+          <form onSubmit={handleSearchSubmit} className="relative">
+            <input
+              type="text"
+              placeholder="Search products & deals..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-slate-800 text-sm text-slate-100 placeholder-slate-400 pl-9 pr-4 py-2.5 rounded-xl border border-slate-700 focus:outline-none focus:border-indigo-500"
+            />
+            <button type="submit" className="absolute left-3 top-3 text-slate-400">🔍</button>
+          </form>
+
+          {/* Mobile Nav Links */}
+          <div className="space-y-1 pt-1">
+            {[
+              { to: '/', label: '🏠 Home (About App)' },
+              { to: '/search', label: '🔍 Search Deals' },
+              { to: '/compare', label: '📊 Compare Specs' },
+              { to: '/scrape', label: '⚡ Link Scraper' },
+              { to: '/wishlist', label: '❤️ Wishlist' },
+              ...(isAuthenticated ? [
+                { to: '/alerts', label: '🔔 Price Alerts' },
+                { to: '/profile', label: '👤 My Profile' },
+              ] : []),
+            ].map(({ to, label }) => (
+              <Link
+                key={to}
+                to={to}
+                onClick={() => setMobileOpen(false)}
+                className={`block px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${isActive(to) ? 'bg-indigo-600/20 text-indigo-300 border border-indigo-500/20' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+              >
+                {label}
+              </Link>
+            ))}
+          </div>
+
+          {/* Mobile Auth */}
+          <div className="border-t border-slate-800 pt-3">
+            {isAuthenticated ? (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center font-bold text-sm text-white">
+                    {user?.name?.charAt(0)}
+                  </span>
+                  <span className="text-sm font-medium text-slate-200">{user?.name}</span>
+                </div>
+                <button
+                  onClick={() => { logout(); setMobileOpen(false); }}
+                  className="text-xs text-rose-400 font-semibold px-3 py-1.5 bg-rose-500/10 border border-rose-500/20 rounded-lg"
+                >
+                  Sign Out
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-3">
+                <Link
+                  to="/login"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex-1 text-center py-2.5 bg-slate-800 border border-slate-700 text-slate-200 text-sm font-semibold rounded-xl"
+                >
+                  Sign In
+                </Link>
+                <Link
+                  to="/register"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex-1 text-center py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl"
+                >
+                  Register
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </nav>
   );
 };

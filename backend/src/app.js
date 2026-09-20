@@ -1,10 +1,4 @@
-// Sanitize Neon DATABASE_URL automatically to fix pgbouncer port issues if needed without breaking pooler hostnames
-if (process.env.DATABASE_URL) {
-  process.env.DATABASE_URL = process.env.DATABASE_URL
-    .replace(/:6543/g, '')
-    .replace(/&pgbouncer=true/g, '')
-    .replace(/\?pgbouncer=true/g, '');
-}
+// Database URL is configured in .env — no runtime modification needed
 
 import express from 'express';
 import cors from 'cors';
@@ -43,7 +37,11 @@ app.use('/api/auth', authRoutes);
 // Product Routes (scraping, catalog, reviews)
 import productRoutes from './modules/product/product.routes.js';
 app.use('/api/products', productRoutes);
+// Scrape Route
+import scrapeRoutes from './routes/scrape.routes.js';
+app.use('/api/scrape', scrapeRoutes);
 
+// AI Platform Advisor Routes
 // AI Platform Advisor Routes
 import platformAdvisorRoutes from './modules/platformAdvisor/platformAdvisor.routes.js';
 app.use('/api/platform-advisor', platformAdvisorRoutes);
@@ -78,6 +76,26 @@ app.get('/api', (req, res) => {
     success: true,
     message: 'ShopWise AI API Root'
   });
+});
+
+// PostgreSQL Test DB API Route
+import pool from '../database.js';
+
+app.get('/api/test-db', async (req, res) => {
+  try {
+    const client = await pool.connect();
+    client.release();
+    res.status(200).json({
+      success: true,
+      message: 'Database connected successfully'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Database connection error',
+      error: error.message
+    });
+  }
 });
 
 app.get('/health', (req, res) => {

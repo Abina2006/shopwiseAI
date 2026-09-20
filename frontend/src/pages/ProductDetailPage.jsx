@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { getProductVisual } from '../utils/productImages';
 import { sanitizeStoreUrl } from '../utils/urlHelper';
 
-const API = import.meta.env.VITE_API_BASE_URL || 'https://shopwiseai-pys5.onrender.com/api';
+const API = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
 function StarRating({ rating = 0, size = 'sm' }) {
   const full = Math.floor(rating);
@@ -180,6 +180,8 @@ export default function ProductDetailPage() {
             <div className={`relative rounded-3xl overflow-hidden h-80 sm:h-96 bg-gradient-to-br ${visual.bgGradient} flex items-center justify-center border border-slate-800 shadow-2xl`}>
               {!imgError && product.imageUrl ? (
                 <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" onError={()=>setImgError(true)} />
+              ) : visual.fallbackImg ? (
+                <img src={visual.fallbackImg} alt={product.name} className="w-full h-full object-cover" onError={(e)=>{e.target.style.display='none';}} />
               ) : (
                 <div className="flex flex-col items-center gap-3">
                   <span className="text-8xl drop-shadow-2xl">{visual.emoji}</span>
@@ -212,8 +214,8 @@ export default function ProductDetailPage() {
 
             <div className="bg-gradient-to-r from-emerald-950/60 to-slate-900 border border-emerald-500/30 rounded-2xl p-4 space-y-2">
               <div className="flex items-baseline gap-3">
-                <span className="text-4xl font-black text-emerald-400">₹{Number(lowestPrice).toLocaleString('en-IN')}</span>
-                {savings>0 && <span className="text-lg text-slate-500 line-through">₹{Number(highestPrice).toLocaleString('en-IN')}</span>}
+                <span className="text-4xl font-black text-emerald-400">₹{Math.round(Number(lowestPrice)).toLocaleString('en-IN')}</span>
+                {savings>0 && <span className="text-lg text-slate-500 line-through">₹{Math.round(Number(highestPrice)).toLocaleString('en-IN')}</span>}
               </div>
               <p className="text-xs text-emerald-300/80 font-semibold">🏆 Lowest across {listings.length} store{listings.length!==1?'s':''} • Best on {bestListing.sellerName}</p>
             </div>
@@ -252,7 +254,7 @@ export default function ProductDetailPage() {
               {icon:'📦',title:'Category',value:product.category},
               {icon:'🏷️',title:'Brand',value:product.brand||'Not specified'},
               {icon:'🏪',title:'Available On',value:listings.map(l=>l.sellerName).join(', ')||'N/A'},
-              {icon:'💰',title:'Price Range',value:`₹${Number(lowestPrice).toLocaleString('en-IN')} – ₹${Number(highestPrice).toLocaleString('en-IN')}`},
+              {icon:'💰',title:'Price Range',value:`₹${Math.round(Number(lowestPrice)).toLocaleString('en-IN')} – ₹${Math.round(Number(highestPrice)).toLocaleString('en-IN')}`},
               {icon:'⭐',title:'Rating',value:`${Number(primaryListing.rating||4.5).toFixed(1)} / 5.0 stars`},
               {icon:'💚',title:'Best Savings',value:savings>0?`Save ${savings}% vs highest price`:'Competitive pricing'},
             ].map((item,i)=>(
@@ -285,7 +287,7 @@ export default function ProductDetailPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-3 sm:flex-col sm:items-end">
-                    <span className={`text-xl font-black ${isLowest?'text-emerald-400':'text-white'}`}>₹{Number(l.price).toLocaleString('en-IN')}</span>
+                    <span className={`text-xl font-black ${isLowest?'text-emerald-400':'text-white'}`}>₹{Math.round(Number(l.price)).toLocaleString('en-IN')}</span>
                     <a href={sanitizeStoreUrl(l.sellerUrl,product.name,l.sellerName)} target="_blank" rel="noreferrer noopener" referrerPolicy="no-referrer"
                       className={`text-xs font-bold px-4 py-2 rounded-xl transition-all ${isLowest?'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg':'bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700'}`}
                     >Buy on {l.sellerName} ↗</a>

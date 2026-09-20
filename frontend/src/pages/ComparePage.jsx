@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import PlatformAdvisorCard from '../components/PlatformAdvisorCard';
 import { sanitizeStoreUrl } from '../utils/urlHelper';
+import { getProductVisual } from '../utils/productImages';
 
-const API = import.meta.env.VITE_API_BASE_URL || 'https://shopwiseai-pys5.onrender.com/api';
+const API = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
 function StarRating({ rating = 0 }) {
   const full = Math.floor(rating);
@@ -196,11 +197,17 @@ const ComparePage = () => {
                     <th key={p.id} className="p-5 text-left border-l border-slate-800/80">
                       <div className="space-y-3">
                         <div className="relative h-32 w-full bg-slate-800 rounded-xl overflow-hidden">
-                          <img
-                            src={p.imageUrl || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=400'}
-                            alt={p.name}
-                            className="w-full h-full object-cover"
-                          />
+                          {(() => {
+                            const visual = getProductVisual(p);
+                            return (
+                              <img
+                                src={p.imageUrl || visual.fallbackImg}
+                                alt={p.name}
+                                className="w-full h-full object-cover"
+                                onError={(e) => { e.target.src = visual.fallbackImg; }}
+                              />
+                            );
+                          })()}
                           <span className="absolute top-2 left-2 bg-indigo-600/90 text-white text-[10px] font-bold px-2 py-0.5 rounded-md">
                             {p.category}
                           </span>
@@ -223,7 +230,7 @@ const ComparePage = () => {
                     <td key={p.id} className="p-5 border-l border-slate-800/80">
                       <div className="flex items-baseline gap-2">
                         <span className="text-2xl font-extrabold text-emerald-400">
-                          ₹{Number(p.minPrice || 0).toLocaleString('en-IN')}
+                          ₹{Math.round(Number(p.minPrice || 0)).toLocaleString('en-IN')}
                         </span>
                         {p.savingsPercent > 0 && (
                           <span className="text-[11px] bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 px-2 py-0.5 rounded-full font-bold">
@@ -261,7 +268,7 @@ const ComparePage = () => {
                           <div key={l.id} className="flex items-center justify-between bg-slate-800/60 p-2.5 rounded-xl border border-slate-700/50 text-xs">
                             <span className="font-semibold text-slate-200">🏪 {l.sellerName}</span>
                             <div className="text-right">
-                              <span className="font-bold text-indigo-300">₹{Number(l.price).toLocaleString('en-IN')}</span>
+                              <span className="font-bold text-indigo-300">₹{Math.round(Number(l.price)).toLocaleString('en-IN')}</span>
                               <a
                                 href={sanitizeStoreUrl(l.sellerUrl, p.name, l.sellerName)}
                                 target="_blank"

@@ -33,7 +33,7 @@ const RegisterPage = () => {
 
     const result = await registerUserAction(name, email, password);
     if (result.success) {
-      navigate('/products', { replace: true });
+      navigate('/compare', { replace: true });
     } else {
       setFormError(result.error);
     }

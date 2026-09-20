@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { getProductVisual } from '../utils/productImages';
 
 const API = import.meta.env.VITE_API_BASE_URL || 'https://shopwiseai-pys5.onrender.com/api';
 
@@ -274,9 +275,17 @@ export default function ProfilePage() {
                 {wishlist.map(product => (
                   <div key={product.id} className="bg-slate-900 rounded-2xl border border-slate-800 p-4 flex gap-3 hover:border-indigo-500/40 transition-all">
                     <div className="w-14 h-14 rounded-xl bg-slate-800 flex-shrink-0 overflow-hidden">
-                      {product.imageUrl
-                        ? <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" onError={e => e.target.style.display = 'none'} />
-                        : <span className="text-2xl flex items-center justify-center w-full h-full">📦</span>}
+                      {(() => {
+                        const visual = getProductVisual(product);
+                        return (
+                          <img
+                            src={product.imageUrl || visual.fallbackImg}
+                            alt={product.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => { e.target.src = visual.fallbackImg; }}
+                          />
+                        );
+                      })()}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs text-indigo-400 font-semibold">{product.category}</p>

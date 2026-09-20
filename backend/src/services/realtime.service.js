@@ -1,6 +1,5 @@
-import { PrismaClient } from '@prisma/client';
+import prisma from '../config/db.js';
 
-const prisma = new PrismaClient();
 
 // In-memory set of connected SSE response objects
 const clients = new Set();

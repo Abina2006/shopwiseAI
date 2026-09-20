@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useRealtimeFeed } from '../hooks/useRealtimeFeed';
+import { getProductVisual } from '../utils/productImages';
 
-const API = import.meta.env.VITE_API_BASE_URL || 'https://shopwiseai-pys5.onrender.com/api';
+const API = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
 const STEPS = [
   { id: 1, label: 'Connecting to URL', icon: '🌐' },
@@ -87,12 +88,17 @@ function ProductCard({ product, listing, listings = [], reviews }) {
     <div className="bg-gradient-to-b from-slate-800/80 to-slate-900 border border-slate-700 hover:border-indigo-500/50 rounded-2xl overflow-hidden shadow-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-indigo-900/30 flex flex-col justify-between">
       <div>
         <div className="relative h-44 bg-slate-800 overflow-hidden">
-          <img
-            src={product.imageUrl || listing?.sellerUrl}
-            alt={product.name}
-            className="w-full h-full object-cover opacity-80 hover:opacity-100 transition-opacity"
-            onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=600'; }}
-          />
+          {(() => {
+            const visual = getProductVisual(product);
+            return (
+              <img
+                src={product.imageUrl || visual.fallbackImg}
+                alt={product.name}
+                className="w-full h-full object-cover opacity-80 hover:opacity-100 transition-opacity"
+                onError={(e) => { e.target.src = visual.fallbackImg; }}
+              />
+            );
+          })()}
           <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent" />
           <span className="absolute top-3 left-3 bg-indigo-600/90 text-white text-xs font-bold px-2 py-1 rounded-lg backdrop-blur-sm">
             {product.category}

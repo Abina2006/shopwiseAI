@@ -11,7 +11,9 @@ const LoginPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  const redirectPath = location.state?.from?.pathname || '/';
+  const redirectPath = (location.state?.from?.pathname && location.state?.from?.pathname !== '/login')
+    ? location.state.from.pathname
+    : '/compare';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -109,20 +111,31 @@ const LoginPage = () => {
           </button>
         </form>
 
-        {/* 1-Click Quick Demo Login Button */}
+        {/* 1-Click Quick Demo Login Buttons */}
         <div className="mt-6 pt-5 border-t border-slate-800 space-y-2">
           <span className="block text-[11px] font-bold uppercase text-slate-500 text-center tracking-wider">
             Quick 1-Click Access
           </span>
-          <button
-            type="button"
-            onClick={() => handleQuickLogin('abinaa059@gmail.com', 'Abina@2006')}
-            disabled={loading}
-            className="w-full flex items-center justify-center gap-2 bg-slate-800/80 hover:bg-slate-750 border border-slate-700 hover:border-indigo-500/40 text-xs font-semibold text-indigo-300 py-2.5 px-4 rounded-xl transition-all shadow-sm"
-          >
-            <span>⚡</span>
-            <span>1-Click Admin/Shopper Demo Login</span>
-          </button>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => handleQuickLogin('vaish@gmail.com', 'vaish')}
+              disabled={loading}
+              className="flex items-center justify-center gap-1.5 bg-slate-800/80 hover:bg-slate-750 border border-slate-700 hover:border-indigo-500/40 text-xs font-semibold text-indigo-300 py-2.5 px-3 rounded-xl transition-all shadow-sm"
+            >
+              <span>⚡</span>
+              <span>Login as Vaish</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleQuickLogin('abinaa059@gmail.com', 'Abina@2006')}
+              disabled={loading}
+              className="flex items-center justify-center gap-1.5 bg-slate-800/80 hover:bg-slate-750 border border-slate-700 hover:border-indigo-500/40 text-xs font-semibold text-purple-300 py-2.5 px-3 rounded-xl transition-all shadow-sm"
+            >
+              <span>👑</span>
+              <span>Login as Abina</span>
+            </button>
+          </div>
         </div>
 
         {/* Register Link */}

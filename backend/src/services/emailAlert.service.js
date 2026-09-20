@@ -1,8 +1,7 @@
 import nodemailer from 'nodemailer';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../config/db.js';
 import { broadcastScraperLog } from './realtime.service.js';
 
-const prisma = new PrismaClient();
 
 // Setup Nodemailer transporter with test/SMTP fallback
 let transporter = null;

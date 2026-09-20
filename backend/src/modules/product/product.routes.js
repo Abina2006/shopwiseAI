@@ -10,10 +10,14 @@ import {
   syncAllProductsHandler,
   getSmartAdvisorHandler,
   createPriceAlertHandler,
-  getBudgetAdvisorHandler
+  getBudgetAdvisorHandler,
+  searchProductsHandler
 } from './product.controller.js';
 
 const router = Router();
+
+// GET  /api/products/search - Cross-platform product search (Amazon, Flipkart, Meesho)
+router.get('/search', searchProductsHandler);
 
 // GET  /api/products/budget-advisor - AI Product Recommendation within user budget
 router.get('/budget-advisor', getBudgetAdvisorHandler);

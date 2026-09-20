@@ -84,25 +84,58 @@ class PostgresPipeline:
         conn = self.conn
 
         try:
-            # 1. Check if product exists by matching name and brand (case insensitive)
+            # 1. Check if product exists using exact or fuzzy string matching
+            import difflib
+
+            product_id = None
+            
+            # First try exact match
             cursor.execute(
-                "SELECT id FROM products WHERE LOWER(name) = LOWER(%s) AND LOWER(brand) = LOWER(%s)",
+                "SELECT id, name FROM products WHERE LOWER(name) = LOWER(%s) AND LOWER(brand) = LOWER(%s)",
                 (item['name'], item['brand'])
             )
-            product = cursor.fetchone()
+            exact_match = cursor.fetchone()
 
-            if product:
-                product_id = product['id']
+            if exact_match:
+                product_id = exact_match['id']
             else:
-                # Create Product
+                # Fuzzy match: search products within the same brand or category
                 cursor.execute(
-                    "INSERT INTO products (id, name, category, brand, image_url, description, created_at) "
-                    "VALUES (gen_random_uuid(), %s, %s, %s, %s, %s, %s) RETURNING id",
-                    (item['name'], item['category'], item['brand'], item['image_url'], item['description'], datetime.datetime.now())
+                    "SELECT id, name FROM products WHERE LOWER(brand) = LOWER(%s) OR LOWER(category) = LOWER(%s)",
+                    (item['brand'], item['category'])
                 )
-                res = cursor.fetchone()
-                product_id = res['id'] if res else None
-                conn.commit()
+                candidates = cursor.fetchall()
+                best_ratio = 0.0
+                best_candidate_id = None
+
+                item_name_lower = item['name'].lower()
+                for cand in candidates:
+                    cand_name_lower = cand['name'].lower()
+                    # Calculate similarity ratio
+                    ratio = difflib.SequenceMatcher(None, item_name_lower, cand_name_lower).ratio()
+                    # Also check if core words overlap
+                    item_words = set(item_name_lower.split())
+                    cand_words = set(cand_name_lower.split())
+                    overlap_ratio = len(item_words.intersection(cand_words)) / max(len(item_words), 1)
+
+                    score = max(ratio, overlap_ratio)
+                    if score > best_ratio and score >= 0.60:
+                        best_ratio = score
+                        best_candidate_id = cand['id']
+
+                if best_candidate_id:
+                    product_id = best_candidate_id
+                    spider.logger.info(f"Fuzzy match found: '{item['name']}' matched to product ID {product_id} (score: {best_ratio:.2f})")
+                else:
+                    # Create new Product
+                    cursor.execute(
+                        "INSERT INTO products (id, name, category, brand, image_url, description, created_at) "
+                        "VALUES (gen_random_uuid(), %s, %s, %s, %s, %s, %s) RETURNING id",
+                        (item['name'], item['category'], item['brand'], item['image_url'], item['description'], datetime.datetime.now())
+                    )
+                    res = cursor.fetchone()
+                    product_id = res['id'] if res else None
+                    conn.commit()
 
             if not product_id:
                 return item

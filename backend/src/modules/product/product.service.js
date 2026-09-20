@@ -1,10 +1,9 @@
-import { PrismaClient } from '@prisma/client';
+import prisma from '../../config/db.js';
 import { exec } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { validateAndSanitizePrice } from '../../utils/priceValidator.js';
 
-const prisma = new PrismaClient();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SCRAPER_DIR = path.join(__dirname, '../../../../scraper');
 
@@ -114,15 +113,29 @@ async function upsertProduct(item) {
     
     // Category-specific price variation multipliers
     const catLower = (product.category || '').toLowerCase();
-    let meeshoMult = 0.94, flipkartMult = 1.00, amazonMult = 1.02, cromaMult = 1.08;
+    const nameLowerForMeesho = (product.name || '').toLowerCase();
+    let flipkartMult = 1.00, amazonMult = 1.02, cromaMult = 1.08;
+
+    // Meesho only sells: fashion, clothing, personal care, groceries, budget accessories.
+    // It does NOT carry: laptops, smartphones, premium electronics, TVs, appliances, etc.
+    const meeshoExcludedKeywords = [
+      'laptop', 'macbook', 'iphone', 'ipad', 'galaxy', 'smartphone', 'mobile phone',
+      'television', ' tv ', 'refrigerator', 'washing machine', 'air conditioner',
+      'camera', 'dslr', 'printer', 'monitor', 'desktop', 'gaming console', 'playstation', 'xbox'
+    ];
+    const isMeeshoProduct = !meeshoExcludedKeywords.some(kw =>
+      nameLowerForMeesho.includes(kw) || catLower.includes(kw)
+    );
+
+    let meeshoMult = 0.94;
     if (catLower.includes('fashion') || catLower.includes('clothing') || catLower.includes('kurti')) {
       meeshoMult = 0.85; flipkartMult = 1.00; amazonMult = 1.15; cromaMult = 1.20;
     } else if (catLower.includes('smartphone') || catLower.includes('laptop') || catLower.includes('computer')) {
-      meeshoMult = 0.97; flipkartMult = 1.00; amazonMult = 1.00; cromaMult = 1.05;
+      flipkartMult = 1.00; amazonMult = 1.00; cromaMult = 1.05;
     }
 
     const candidateStores = [
-      { sellerName: 'Meesho', rating: 4.3, reviewCount: 650, url: `https://www.meesho.com/search?q=${pSlug}`, mult: meeshoMult },
+      ...(isMeeshoProduct ? [{ sellerName: 'Meesho', rating: 4.3, reviewCount: 650, url: `https://www.meesho.com/search?q=${pSlug}`, mult: meeshoMult }] : []),
       { sellerName: 'Flipkart', rating: 4.5, reviewCount: 2800, url: `https://www.flipkart.com/search?q=${pSlug}`, mult: flipkartMult },
       { sellerName: 'Amazon', rating: 4.7, reviewCount: 5400, url: `https://www.amazon.in/s?k=${pSlug}`, mult: amazonMult },
       { sellerName: 'Croma', rating: 4.6, reviewCount: 420, url: `https://www.croma.com/searchB?q=${pSlug}`, mult: cromaMult }
@@ -635,6 +648,58 @@ export async function getBudgetRecommendations({ category, maxBudget, mode = 'be
   };
 }
 
+/**
+ * Search products across supported platforms (Amazon, Flipkart, Meesho)
+ * using the Multi-Platform Aggregator.
+ *
+ * @param {string} query
+ * @returns {Promise<Object>}
+ */
+export async function searchProducts(query) {
+  if (!query || typeof query !== 'string' || !query.trim()) {
+    return {
+      query: '',
+      sources: { amazon: 'ready', flipkart: 'ready', meesho: 'ready' },
+      totalResults: 0,
+      products: [],
+      groups: [],
+    };
+  }
 
+  const cleanQuery = query.trim();
+  const { aggregateSearch } = await import('../../providers/aggregator.js');
+  const aggregated = await aggregateSearch(cleanQuery);
 
+  // Also query existing DB products matching the query
+  const dbMatches = await prisma.product.findMany({
+    where: {
+      OR: [
+        { name: { contains: cleanQuery, mode: 'insensitive' } },
+        { brand: { contains: cleanQuery, mode: 'insensitive' } },
+        { description: { contains: cleanQuery, mode: 'insensitive' } },
+      ],
+    },
+    include: {
+      listings: {
+        include: {
+          priceHistory: {
+            orderBy: { recordedAt: 'desc' },
+            take: 7,
+          },
+        },
+      },
+    },
+    take: 10,
+  }).catch(() => []);
 
+  return {
+    query: cleanQuery,
+    sources: aggregated.sources,
+    totalResults: aggregated.products.length,
+    products: aggregated.products,
+    groups: aggregated.groups,
+    dbMatchesCount: dbMatches.length,
+    dbMatches,
+    savedCount: aggregated.savedCount,
+  };
+}
