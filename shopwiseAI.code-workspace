@@ -1,0 +1,25 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"python.defaultInterpreterPath": "C:\\Users\\ADMIN\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+		"python.analysis.extraPaths": [
+			"${workspaceFolder}/scraper",
+			"${workspaceFolder}/scraper/shopwise_scraper"
+		],
+		"python.analysis.typeCheckingMode": "basic",
+		"python.analysis.diagnosticSeverityOverrides": {
+			"reportMissingImports": "none",
+			"reportMissingModuleSource": "none",
+			"reportUnusedVariable": "none",
+			"reportGeneralTypeIssues": "none"
+		},
+		"python.analysis.ignore": [
+			"**/_pyrefly_virtual_/**",
+			"**/node_modules/**"
+		]
+	}
+}
