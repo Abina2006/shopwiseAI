@@ -1,11 +1,23 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import api from '../services/api';
+import api, { API_BASE_URL } from '../services/api';
 
 const AuthContext = createContext(null);
+
+// Wake up the Render backend (free tier sleeps after inactivity)
+const warmupBackend = async () => {
+  try {
+    // /health lives at root, not under /api
+    const healthUrl = API_BASE_URL.replace(/\/api\/?$/, '') + '/health';
+    await fetch(healthUrl, { signal: AbortSignal.timeout(60000) });
+  } catch (_) {
+    // Ignore — warmup is best-effort
+  }
+};
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [serverWaking, setServerWaking] = useState(false);
 
   useEffect(() => {
     // Load persisted session on application start
@@ -16,12 +28,34 @@ export const AuthProvider = ({ children }) => {
       setUser(JSON.parse(storedUser));
     }
     setLoading(false);
+
+    // Kick the backend awake in the background on page load
+    warmupBackend();
   }, []);
+
+  // Helper: call fn, retry once on network error (server may be waking up)
+  const callWithRetry = async (fn) => {
+    try {
+      return await fn();
+    } catch (error) {
+      const isNetworkError = error.message === 'Network Error' || !error.response;
+      if (isNetworkError) {
+        setServerWaking(true);
+        // Wait up to 8s for the server to wake, then retry once
+        await new Promise((r) => setTimeout(r, 8000));
+        setServerWaking(false);
+        return await fn();
+      }
+      throw error;
+    }
+  };
 
   const login = async (email, password) => {
     setLoading(true);
     try {
-      const response = await api.post('/auth/login', { email, password });
+      const response = await callWithRetry(() =>
+        api.post('/auth/login', { email, password })
+      );
       const { user: userData, accessToken, refreshToken } = response.data.data;
 
       localStorage.setItem('accessToken', accessToken);
@@ -31,9 +65,11 @@ export const AuthProvider = ({ children }) => {
       setUser(userData);
       return { success: true };
     } catch (error) {
-      const message = error.response?.data?.message || 
-        (error.message === 'Network Error' || !error.response
-          ? 'Unable to connect to backend API server. Please check your connection or backend URL.'
+      const isNetworkError = error.message === 'Network Error' || !error.response;
+      const message =
+        error.response?.data?.message ||
+        (isNetworkError
+          ? 'Server is still starting up. Please wait a moment and try again.'
           : 'Login failed. Please try again.');
       return { success: false, error: message };
     } finally {
@@ -44,7 +80,9 @@ export const AuthProvider = ({ children }) => {
   const registerUserAction = async (name, email, password) => {
     setLoading(true);
     try {
-      const response = await api.post('/auth/register', { name, email, password });
+      const response = await callWithRetry(() =>
+        api.post('/auth/register', { name, email, password })
+      );
       const { user: userData, accessToken, refreshToken } = response.data.data;
 
       localStorage.setItem('accessToken', accessToken);
@@ -54,9 +92,11 @@ export const AuthProvider = ({ children }) => {
       setUser(userData);
       return { success: true };
     } catch (error) {
-      const message = error.response?.data?.message || 
-        (error.message === 'Network Error' || !error.response
-          ? 'Unable to connect to backend API server. Please check your connection or backend URL.'
+      const isNetworkError = error.message === 'Network Error' || !error.response;
+      const message =
+        error.response?.data?.message ||
+        (isNetworkError
+          ? 'Server is still starting up. Please wait a moment and try again.'
           : 'Registration failed. Please try again.');
       return { success: false, error: message };
     } finally {
@@ -85,11 +125,12 @@ export const AuthProvider = ({ children }) => {
   const value = {
     user,
     loading,
+    serverWaking,
     isAuthenticated,
     isAdmin,
     login,
     registerUserAction,
-    logout
+    logout,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

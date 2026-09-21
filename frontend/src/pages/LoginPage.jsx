@@ -6,7 +6,7 @@ const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [formError, setFormError] = useState('');
-  const { login, loading } = useAuth();
+  const { login, loading, serverWaking } = useAuth();
   
   const navigate = useNavigate();
   const location = useLocation();
@@ -66,6 +66,14 @@ const LoginPage = () => {
           </p>
         </div>
 
+        {/* Server waking up banner */}
+        {serverWaking && (
+          <div className="bg-yellow-500/10 border border-yellow-500/30 text-yellow-300 text-xs rounded-xl p-3.5 mb-4 flex items-center gap-2 animate-pulse">
+            <span>⏳</span>
+            <span>Waking up server… this takes ~10s on first load. Please wait.</span>
+          </div>
+        )}
+
         {/* Error Alert */}
         {formError && (
           <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-xs rounded-xl p-3.5 mb-6 flex items-center gap-2 animate-in fade-in">
@@ -107,7 +115,11 @@ const LoginPage = () => {
             disabled={loading}
             className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 disabled:opacity-50 text-white font-bold py-3 px-4 rounded-xl transition-all shadow-lg shadow-indigo-600/30 mt-2 text-sm active:scale-95"
           >
-            {loading ? 'Authenticating...' : 'Sign In to ShopWise AI 🚀'}
+            {loading
+              ? serverWaking
+                ? 'Waking up server...'
+                : 'Authenticating...'
+              : 'Sign In to ShopWise AI 🚀'}
           </button>
         </form>
 

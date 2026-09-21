@@ -17,8 +17,27 @@ if (process.env.NODE_ENV === 'development') {
   app.use(morgan('combined'));
 }
 
-// Enable CORS
-app.use(cors());
+// Enable CORS — allow Vercel frontend + local dev
+const allowedOrigins = [
+  'https://shopwise-ai-frontend.vercel.app', // primary Vercel deployment
+  /https:\/\/shopwise-ai-frontend.*\.vercel\.app/, // Vercel preview branches
+  'http://localhost:3000',
+  'http://localhost:5173',
+];
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (curl, Postman, server-to-server)
+      if (!origin) return callback(null, true);
+      const allowed = allowedOrigins.some((o) =>
+        o instanceof RegExp ? o.test(origin) : o === origin
+      );
+      if (allowed) return callback(null, true);
+      callback(new Error(`CORS: origin ${origin} not allowed`));
+    },
+    credentials: true,
+  })
+);
 
 // Body parser, reading data from body into req.body
 app.use(express.json({ limit: '10kb' }));
