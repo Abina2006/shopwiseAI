@@ -6,7 +6,7 @@ const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [formError, setFormError] = useState('');
-  const { login, loading, serverWaking } = useAuth();
+  const { login, loading, serverWaking, wakeCountdown } = useAuth();
   
   const navigate = useNavigate();
   const location = useLocation();
@@ -66,11 +66,22 @@ const LoginPage = () => {
           </p>
         </div>
 
-        {/* Server waking up banner */}
+        {/* Server waking up banner with countdown */}
         {serverWaking && (
-          <div className="bg-yellow-500/10 border border-yellow-500/30 text-yellow-300 text-xs rounded-xl p-3.5 mb-4 flex items-center gap-2 animate-pulse">
-            <span>⏳</span>
-            <span>Waking up server… this takes ~10s on first load. Please wait.</span>
+          <div className="bg-yellow-500/10 border border-yellow-500/30 text-yellow-200 text-xs rounded-xl p-4 mb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="animate-spin text-base">⏳</span>
+              <span className="font-semibold">Waking up server — Render free tier sleeps after inactivity</span>
+            </div>
+            <div className="w-full bg-yellow-900/40 rounded-full h-1.5 mb-1.5">
+              <div
+                className="bg-yellow-400 h-1.5 rounded-full transition-all duration-1000"
+                style={{ width: `${Math.max(0, ((60 - wakeCountdown) / 60) * 100)}%` }}
+              />
+            </div>
+            <p className="text-yellow-400/80 text-[11px]">
+              Auto-retrying when ready… {wakeCountdown > 0 ? `~${wakeCountdown}s remaining` : 'connecting…'}
+            </p>
           </div>
         )}
 
