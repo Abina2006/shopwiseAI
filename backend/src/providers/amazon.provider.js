@@ -195,11 +195,22 @@ class AmazonProvider extends BaseProvider {
       }
     }
 
+    // If no hardcoded matches, dynamically generate realistic-looking variants
     if (products.length === 0) {
-      products = [
-        this.generateMockProduct(query, "Amazon Choice"),
-        this.generateMockProduct(query, "Best Seller")
-      ];
+      const p1 = this.generateMockProduct(query, "Premium Edition");
+      p1.name = `Premium ${query.charAt(0).toUpperCase() + query.slice(1)} (Bestseller)`;
+      
+      const p2 = this.generateMockProduct(query, "Standard Edition");
+      p2.name = `${query.charAt(0).toUpperCase() + query.slice(1)} - Standard Pack`;
+      p2.price = Math.floor(p1.price * 0.75);
+      p2.original_price = Math.floor(p1.original_price * 0.75);
+      
+      const p3 = this.generateMockProduct(query, "Value Pack");
+      p3.name = `${query.charAt(0).toUpperCase() + query.slice(1)} (Amazon Basics Equivalent)`;
+      p3.price = Math.floor(p1.price * 0.5);
+      p3.original_price = Math.floor(p1.original_price * 0.5);
+      
+      products = [p1, p2, p3];
     }
 
     // Deduplicate

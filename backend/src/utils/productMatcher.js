@@ -1,241 +1,144 @@
 /**
- * Deterministic Product Identity & Variant Matcher
+ * Product Matcher & Specification Normalizer for ShopWise AI
  *
- * Exact 6-Factor Weighted Matching Score:
- * - Brand: 20%
- * - Model: 30%
- * - Product Name: 15%
- * - Variant: 15% (Storage, RAM, Color, Size, Pack Quantity)
- * - Specifications: 10%
- * - Identifiers: 10% (SKU, GTIN, EAN, UPC, ASIN, FSN, External Product ID)
- *
- * Thresholds:
- * - 90–100 → VERIFIED
- * - 70–89  → POSSIBLE_MATCH
- * - Below 70 → NOT_MATCHED
+ * Prevents false product grouping across marketplaces by comparing:
+ * - Brand
+ * - Model number / Core Model Name
+ * - Storage (e.g. 128GB vs 256GB vs 512GB vs 1TB)
+ * - RAM (e.g. 8GB vs 12GB vs 16GB vs 24GB)
+ * - Model Tier / Suffix (e.g. Pro, Pro Max, Plus, Ultra, Air, Mini, Lite)
+ * - Chipset / Generation (e.g. M1, M2, M3, M4, Gen 3)
+ * - Size / Volume (e.g. 14-inch, 55-inch, 44mm, 1 Litre, 500g, 4kg)
  */
 
-export function parseSpecs(str = '') {
-  const text = str.toLowerCase();
+/**
+ * Extract technical specifications and variants from a product title string
+ * @param {string} title
+ * @returns {Object}
+ */
+export function extractProductSpecs(title) {
+  if (!title || typeof title !== 'string') {
+    return { storage: null, ram: null, tier: null, generation: null, size: null, raw: '' };
+  }
 
-  // Storage: e.g. 32gb, 64gb, 128gb, 256gb, 512gb, 1tb, 2tb
-  const storageMatch = text.match(/\b(32|64|128|256|512)\s*(gb|tb)\b|\b(1|2)\s*tb\b/i);
-  const storage = storageMatch ? storageMatch[0].replace(/\s+/g, '').toLowerCase() : null;
+  const clean = title.toLowerCase();
 
-  // RAM: e.g. 4gb, 6gb, 8gb, 12gb, 16gb, 32gb
-  const ramMatch = text.match(/\b(4|6|8|12|16|32|64)\s*gb\s*(ram)?\b/i);
-  const ram = ramMatch ? ramMatch[0].replace(/\s+/g, '').replace('ram', '').toLowerCase() : null;
+  // Storage: 32GB, 64GB, 128GB, 256GB, 512GB, 1TB, 2TB
+  const storageMatch = clean.match(/\b(32\s*gb|64\s*gb|128\s*gb|256\s*gb|512\s*gb|1\s*tb|2\s*tb)\b/i);
+  const storage = storageMatch ? storageMatch[1].replace(/\s+/g, '').toUpperCase() : null;
 
-  // Size: e.g. 40mm, 44mm, 45mm, 15.6 inch, 6.7 inch, 13-inch
-  const sizeMatch = text.match(/\b(\d+(\.\d+)?)\s*(mm|inch|"|cm)\b/i);
-  const size = sizeMatch ? sizeMatch[0].replace(/\s+/g, '').toLowerCase() : null;
+  // RAM: 4GB, 6GB, 8GB, 12GB, 16GB, 24GB, 32GB RAM
+  const ramMatch = clean.match(/\b(4\s*gb|6\s*gb|8\s*gb|12\s*gb|16\s*gb|24\s*gb|32\s*gb)\s*(?:ram|unified\s*memory)\b/i) ||
+                   clean.match(/(?:,\s*|\/\s*)(4\s*gb|6\s*gb|8\s*gb|12\s*gb|16\s*gb|24\s*gb)\b/i);
+  const ram = ramMatch ? ramMatch[1].replace(/\s+/g, '').toUpperCase() : null;
 
-  // Pack quantity (e.g. pack of 2, 4-pack, 3 pcs)
-  const packMatch = text.match(/\b(pack\s*of\s*\d+|\d+\s*pack|\d+\s*(pcs|pieces))\b/i);
-  const packQty = packMatch ? packMatch[0].replace(/\s+/g, '').toLowerCase() : null;
+  // Model Tier: Pro Max, Pro, Plus, Ultra, Mini, Lite, Slim, FE, SE
+  let tier = null;
+  if (/\bpro\s*max\b/i.test(clean)) tier = 'PRO_MAX';
+  else if (/\bpro\b/i.test(clean)) tier = 'PRO';
+  else if (/\bplus\b/i.test(clean)) tier = 'PLUS';
+  else if (/\bultra\b/i.test(clean)) tier = 'ULTRA';
+  else if (/\bmini\b/i.test(clean)) tier = 'MINI';
+  else if (/\blite\b/i.test(clean)) tier = 'LITE';
+  else if (/\bslim\b/i.test(clean)) tier = 'SLIM';
 
-  // Color keywords
-  const colors = [
-    'black', 'white', 'blue', 'red', 'green', 'gold', 'silver', 
-    'grey', 'gray', 'purple', 'pink', 'yellow', 'titanium', 'natural', 
-    'midnight', 'starlight', 'space gray', 'phantom'
-  ];
-  const color = colors.find(c => text.includes(c)) || null;
+  // Chipset / Generation: M1, M2, M3, M4, 13th Gen, 14th Gen
+  let generation = null;
+  const chipMatch = clean.match(/\b(m[1-4]|gen\s*[1-4]|1[2-4]th\s*gen)\b/i);
+  if (chipMatch) generation = chipMatch[1].replace(/\s+/g, '').toUpperCase();
 
-  // Model numbers & series extraction
-  // e.g. iPhone 15, iPhone 15 Pro, iPhone 15 Pro Max, Galaxy S24, S24 Ultra, WH-1000XM5, M3 Air, M2 Pro
-  const modelMatch = text.match(/\b(iphone\s*(1[1-6]|x[r|s]?)\s*(pro\s*max|pro|plus)?|galaxy\s*s[2][0-4]\s*(ultra|plus|\+)?|wh-?1000xm[3-5]|macbook\s*(air|pro)?\s*(m[1-4])?|airdopes\s*\d+|watch\s*\d+|rog\s*\d+|pavilion)\b/i);
-  const modelKey = modelMatch ? modelMatch[0].replace(/\s+/g, ' ').trim().toLowerCase() : null;
+  // Screen / Size / Weight
+  let size = null;
+  const sizeMatch = clean.match(/\b(\d+(?:\.\d+)?\s*(?:inch|\"|cm|mm|litre|ltr|kg|gm|g))\b/i);
+  if (sizeMatch) size = sizeMatch[1].replace(/\s+/g, '').toLowerCase();
 
-  return { storage, ram, size, color, packQty, modelKey, raw: text };
+  return { storage, ram, tier, generation, size, raw: title };
 }
 
 /**
- * Match two products or listings and return deterministic score and match status.
+ * Check if two products are compatible matches (same product, same specs)
+ * @param {Object} productA { name, brand }
+ * @param {Object} productB { name, brand }
+ * @returns {boolean}
  */
-export function matchProducts(prodA, prodB) {
-  if (!prodA || !prodB) {
-    return {
-      matchScore: 0,
-      matchStatus: 'NOT_MATCHED',
-      matchConfidence: 'NO_MATCH',
-      isVariantMatch: false,
-      reason: 'Missing product details for comparison.',
-      breakdown: { brand: 0, model: 0, name: 0, variant: 0, specs: 0, identifiers: 0 }
-    };
-  }
+export function areProductsMatching(productA, productB) {
+  if (!productA?.name || !productB?.name) return false;
 
-  const nameA = (prodA.name || prodA.title || '').trim();
-  const nameB = (prodB.name || prodB.title || '').trim();
-  const brandA = (prodA.brand || '').toLowerCase().trim();
-  const brandB = (prodB.brand || '').toLowerCase().trim();
+  const brandA = (productA.brand || '').trim().toLowerCase();
+  const brandB = (productB.brand || '').trim().toLowerCase();
 
-  const idA = prodA.asin || prodA.sku || prodA.fsn || prodA.externalProductId || prodA.id;
-  const idB = prodB.asin || prodB.sku || prodB.fsn || prodB.externalProductId || prodB.id;
-
-  // 1. Identifiers Match (10%)
-  let identifierScore = 0;
-  if (idA && idB && String(idA).trim().toLowerCase() === String(idB).trim().toLowerCase()) {
-    identifierScore = 10;
-  } else if (prodA.asin && prodB.asin && prodA.asin.toUpperCase() !== prodB.asin.toUpperCase()) {
-    // Explicit ASIN mismatch
-    return {
-      matchScore: 0,
-      matchStatus: 'NOT_MATCHED',
-      matchConfidence: 'NO_MATCH',
-      isVariantMatch: false,
-      reason: `Marketplace identifier mismatch (${prodA.asin} vs ${prodB.asin}).`,
-      breakdown: { brand: 0, model: 0, name: 0, variant: 0, specs: 0, identifiers: 0 }
-    };
-  }
-
-  // 2. Brand Match (20%)
-  let brandScore = 0;
-  if (brandA && brandB && brandA !== 'unknown' && brandB !== 'unknown') {
-    if (brandA === brandB || nameA.toLowerCase().includes(brandB) || nameB.toLowerCase().includes(brandA)) {
-      brandScore = 20;
-    } else {
-      return {
-        matchScore: 0,
-        matchStatus: 'NOT_MATCHED',
-        matchConfidence: 'NO_MATCH',
-        isVariantMatch: false,
-        reason: `Brand mismatch ("${prodA.brand}" vs "${prodB.brand}").`,
-        breakdown: { brand: 0, model: 0, name: 0, variant: 0, specs: 0, identifiers: 0 }
-      };
-    }
-  } else {
-    // Attempt brand deduction from title
-    const firstWordA = nameA.split(' ')[0]?.toLowerCase();
-    const firstWordB = nameB.split(' ')[0]?.toLowerCase();
-    if (firstWordA && firstWordA === firstWordB) {
-      brandScore = 18;
-    } else {
-      brandScore = 12; // Neutral fallback when brand is unassigned
+  // Brand check: if both exist and differ significantly, not a match
+  if (brandA && brandB && brandA !== 'generic' && brandB !== 'generic' && brandA !== brandB) {
+    // Check if one contains the other (e.g. "Apple" in "Apple Inc.")
+    if (!brandA.includes(brandB) && !brandB.includes(brandA)) {
+      return false;
     }
   }
 
-  // Parse specifications & variants
-  const specsA = parseSpecs(`${nameA} ${prodA.variant || ''} ${prodA.model || ''} ${prodA.description || ''}`);
-  const specsB = parseSpecs(`${nameB} ${prodB.variant || ''} ${prodB.model || ''} ${prodB.description || ''}`);
+  const specsA = extractProductSpecs(productA.name);
+  const specsB = extractProductSpecs(productB.name);
 
-  // 3. Variant Match (15%) — Hard rejection on critical hardware/storage/RAM mismatches
-  const variantMismatches = [];
+  // 1. Storage Incompatibility Check
+  // e.g. "iPhone 15 128GB" vs "iPhone 15 256GB" -> MUST NOT MATCH
   if (specsA.storage && specsB.storage && specsA.storage !== specsB.storage) {
-    variantMismatches.push(`Storage (${specsA.storage} vs ${specsB.storage})`);
+    return false;
   }
+
+  // 2. RAM Incompatibility Check
+  // e.g. "MacBook 8GB" vs "MacBook 24GB" -> MUST NOT MATCH
   if (specsA.ram && specsB.ram && specsA.ram !== specsB.ram) {
-    variantMismatches.push(`RAM (${specsA.ram} vs ${specsB.ram})`);
+    return false;
   }
+
+  // 3. Model Tier Incompatibility Check
+  // e.g. "iPhone 15" vs "iPhone 15 Pro" vs "iPhone 15 Pro Max" -> MUST NOT MATCH
+  if (specsA.tier !== specsB.tier) {
+    return false;
+  }
+
+  // 4. Chipset / Generation Check
+  // e.g. "MacBook Air M2" vs "MacBook Air M3" -> MUST NOT MATCH
+  if (specsA.generation && specsB.generation && specsA.generation !== specsB.generation) {
+    return false;
+  }
+
+  // 5. Size Incompatibility Check (if both have specified sizes)
   if (specsA.size && specsB.size && specsA.size !== specsB.size) {
-    variantMismatches.push(`Size (${specsA.size} vs ${specsB.size})`);
-  }
-  if (specsA.packQty && specsB.packQty && specsA.packQty !== specsB.packQty) {
-    variantMismatches.push(`Pack Quantity (${specsA.packQty} vs ${specsB.packQty})`);
+    return false;
   }
 
-  // Critical variant conflict fails match immediately
-  if (variantMismatches.length > 0) {
-    return {
-      matchScore: 40,
-      matchStatus: 'NOT_MATCHED',
-      matchConfidence: 'NO_MATCH',
-      isVariantMatch: false,
-      reason: `Critical variant mismatch: ${variantMismatches.join(', ')}.`,
-      breakdown: { brand: brandScore, model: 0, name: 0, variant: 0, specs: 0, identifiers: identifierScore }
-    };
-  }
+  // 6. Token Overlap on Core Product Model Name
+  const cleanTokensA = cleanCoreTokens(productA.name);
+  const cleanTokensB = cleanCoreTokens(productB.name);
 
-  let variantScore = 15;
-  // If colors differ, slight deduct but still compatible variant
-  if (specsA.color && specsB.color && specsA.color !== specsB.color) {
-    variantScore = 10;
-  }
+  const setA = new Set(cleanTokensA);
+  const setB = new Set(cleanTokensB);
 
-  // 4. Model Match (30%)
-  let modelScore = 0;
-  if (specsA.modelKey && specsB.modelKey) {
-    if (specsA.modelKey === specsB.modelKey) {
-      modelScore = 30;
-    } else {
-      // Model mismatch (e.g. S24 vs S24 Ultra, iPhone 15 vs iPhone 15 Pro)
-      return {
-        matchScore: 45,
-        matchStatus: 'NOT_MATCHED',
-        matchConfidence: 'NO_MATCH',
-        isVariantMatch: false,
-        reason: `Model mismatch (${specsA.modelKey} vs ${specsB.modelKey}).`,
-        breakdown: { brand: brandScore, model: 0, name: 0, variant: variantScore, specs: 0, identifiers: identifierScore }
-      };
-    }
-  } else {
-    // Model token overlap
-    const modelA = (prodA.model || '').toLowerCase().trim();
-    const modelB = (prodB.model || '').toLowerCase().trim();
-    if (modelA && modelB && modelA === modelB) {
-      modelScore = 30;
-    } else {
-      // Fallback: estimate from title token intersection
-      const wordsA = new Set(nameA.toLowerCase().split(/\s+/).filter(w => w.length > 2));
-      const wordsB = new Set(nameB.toLowerCase().split(/\s+/).filter(w => w.length > 2));
-      const common = [...wordsA].filter(w => wordsB.has(w));
-      const ratio = common.length / Math.max(wordsA.size, wordsB.size || 1);
-      modelScore = Math.round(ratio * 30);
-    }
-  }
+  const intersection = cleanTokensA.filter(t => setB.has(t)).length;
+  const union = new Set([...cleanTokensA, ...cleanTokensB]).size;
 
-  // 5. Product Name Similarity (15%)
-  const cleanTokensA = new Set(nameA.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(w => w.length > 1));
-  const cleanTokensB = new Set(nameB.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(w => w.length > 1));
-  const sharedTokens = [...cleanTokensA].filter(t => cleanTokensB.has(t));
-  const nameRatio = sharedTokens.length / Math.max(cleanTokensA.size, cleanTokensB.size || 1);
-  const nameScore = Math.round(nameRatio * 15);
+  const similarity = union === 0 ? 0 : intersection / union;
 
-  // 6. Specifications Match (10%)
-  let specScore = 10;
-  if (!specsA.storage && !specsA.ram && !specsA.size) {
-    specScore = 8; // neutral when unstated
-  }
-
-  // Identifiers score default if verified match found or same product family
-  if (identifierScore === 0 && modelScore >= 25 && brandScore >= 18) {
-    identifierScore = 8;
-  }
-
-  const totalScore = Math.min(100, brandScore + modelScore + nameScore + variantScore + specScore + identifierScore);
-
-  let matchStatus = 'NOT_MATCHED';
-  let matchConfidence = 'NO_MATCH';
-
-  if (totalScore >= 90) {
-    matchStatus = 'VERIFIED';
-    matchConfidence = 'EXACT_MATCH';
-  } else if (totalScore >= 70) {
-    matchStatus = 'POSSIBLE_MATCH';
-    matchConfidence = 'HIGH_CONFIDENCE';
-  }
-
-  const reason = matchStatus === 'VERIFIED'
-    ? 'Verified product identity with matching brand, model, and specifications.'
-    : matchStatus === 'POSSIBLE_MATCH'
-    ? 'High similarity match with compatible specifications.'
-    : 'Similarity score is below verification threshold (<70%).';
-
-  return {
-    matchScore: totalScore,
-    matchStatus,
-    matchConfidence,
-    isVariantMatch: matchStatus !== 'NOT_MATCHED',
-    reason,
-    breakdown: {
-      brand: brandScore,
-      model: modelScore,
-      name: nameScore,
-      variant: variantScore,
-      specs: specScore,
-      identifiers: identifierScore
-    }
-  };
+  // Threshold of 0.45 on core tokens when all technical specifications match
+  return similarity >= 0.45;
 }
 
-export default matchProducts;
+/**
+ * Filter noise tokens from product names to compare core identity
+ * @param {string} name
+ * @returns {string[]}
+ */
+function cleanCoreTokens(name) {
+  const noise = new Set([
+    'for', 'with', 'and', 'the', 'in', 'of', 'on', 'a', 'an', 'to',
+    'compatible', 'official', 'original', 'fast', 'smart', 'new', 'latest',
+    'edition', 'series', 'brand', 'black', 'white', 'grey', 'silver', 'blue',
+    'pack', 'pcs', 'piece', 'set', 'offer', 'best'
+  ]);
+
+  return (name || '')
+    .toLowerCase()
+    .replace(/[^\w\s]/g, ' ')
+    .split(/\s+/)
+    .filter(t => t.length > 1 && !noise.has(t));
+}

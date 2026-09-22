@@ -28,7 +28,13 @@ export async function getWishlist(req, res) {
         product: {
           include: {
             listings: {
-              orderBy: { price: 'asc' }
+              orderBy: { price: 'asc' },
+              include: {
+                priceHistory: {
+                  orderBy: { recordedAt: 'desc' },
+                  take: 3
+                }
+              }
             }
           }
         }
@@ -36,21 +42,70 @@ export async function getWishlist(req, res) {
       orderBy: { createdAt: 'desc' }
     });
 
-    const formatted = items.map(w => ({
-      id: w.id,
-      productId: w.productId,
-      createdAt: w.createdAt,
-      product: {
-        id: w.product.id,
-        name: w.product.name,
-        category: w.product.category,
-        brand: w.product.brand,
-        imageUrl: w.product.imageUrl,
-        lowestPrice: w.product.listings?.[0]?.price || 0,
-        lowestSeller: w.product.listings?.[0]?.sellerName || 'Best Store',
-        listings: w.product.listings
+    const formatted = items.map(w => {
+      const bestListing = w.product.listings?.[0] || null;
+      const currentPrice = bestListing ? parseFloat(bestListing.price) : 0;
+      
+      // Look for a distinct historical price in the last 3 recordings
+      let previousPrice = null;
+      if (bestListing?.priceHistory && bestListing.priceHistory.length > 1) {
+        // Look for the most recent historical recording before the current one
+        const pastHist = bestListing.priceHistory.slice(1).find(h => parseFloat(h.price) > 0);
+        if (pastHist) {
+          previousPrice = parseFloat(pastHist.price);
+        }
       }
-    }));
+
+      let priceChange = null;
+      if (previousPrice !== null && previousPrice > 0 && currentPrice > 0) {
+        const diff = Math.round(previousPrice - currentPrice);
+        if (diff > 0) {
+          priceChange = {
+            type: 'dropped',
+            amount: diff,
+            previousPrice,
+            currentPrice,
+            text: `Price dropped by ₹${diff.toLocaleString('en-IN')}`
+          };
+        } else if (diff < 0) {
+          const increase = Math.abs(diff);
+          priceChange = {
+            type: 'increased',
+            amount: increase,
+            previousPrice,
+            currentPrice,
+            text: `Price increased by ₹${increase.toLocaleString('en-IN')}`
+          };
+        } else {
+          priceChange = {
+            type: 'unchanged',
+            amount: 0,
+            previousPrice,
+            currentPrice,
+            text: 'Price unchanged'
+          };
+        }
+      }
+
+      return {
+        id: w.id,
+        productId: w.productId,
+        createdAt: w.createdAt,
+        priceChange,
+        product: {
+          id: w.product.id,
+          name: w.product.name,
+          category: w.product.category,
+          brand: w.product.brand,
+          imageUrl: w.product.imageUrl,
+          lowestPrice: currentPrice,
+          previousPrice: previousPrice,
+          lowestSeller: bestListing?.sellerName || 'Best Store',
+          priceChange,
+          listings: w.product.listings
+        }
+      };
+    });
 
     return res.status(200).json({
       success: true,

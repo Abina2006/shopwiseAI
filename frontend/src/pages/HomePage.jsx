@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import ProductImage from '../components/ProductImage';
 import { getProductVisual } from '../utils/productImages';
 import { sanitizeStoreUrl } from '../utils/urlHelper';
 import PriceAdvisorModal from '../components/PriceAdvisorModal';
@@ -140,7 +141,8 @@ function ProductCard({ product, onPriceSynced, onOpenAdvisor, onOpenAlert }) {
   const [customListings, setCustomListings] = useState(null);
 
   const visual = getProductVisual(product);
-  const listings = customListings || product.listings || [];
+  const listings = (customListings || product.listings || [])
+    .filter(l => !isNaN(parseFloat(l.price)) && parseFloat(l.price) > 0);
   const primaryListing = listings[0] || {};
   const prices = listings.map(l => parseFloat(l.price) || 0).filter(p => p > 0);
   const lowestPrice = prices.length > 0 ? Math.min(...prices) : (parseFloat(primaryListing.price) || 0);
@@ -240,29 +242,13 @@ function ProductCard({ product, onPriceSynced, onOpenAdvisor, onOpenAlert }) {
     <div className="bg-gradient-to-b from-slate-900/90 to-slate-900 border border-slate-800 hover:border-indigo-500/50 rounded-2xl overflow-hidden shadow-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-indigo-900/20 flex flex-col justify-between">
       <div>
         <div className={`relative h-48 bg-gradient-to-br ${visual.bgGradient} overflow-hidden flex items-center justify-center`}>
-          {!imgError && product.imageUrl ? (
-            <img
-              src={product.imageUrl}
-              alt={product.name}
-              className="w-full h-full object-cover opacity-90 hover:opacity-100 transition-opacity"
-              onError={() => setImgError(true)}
-            />
-          ) : visual.fallbackImg ? (
-            <img
-              src={visual.fallbackImg}
-              alt={product.name}
-              className="w-full h-full object-cover opacity-90 hover:opacity-100 transition-opacity"
-              onError={(e) => { e.target.style.display = 'none'; }}
-            />
-          ) : (
-            <div className="flex flex-col items-center justify-center text-center p-4">
-              <span className="text-5xl mb-2 drop-shadow-md animate-pulse">{visual.emoji}</span>
-              <span className={`text-xs font-bold px-2.5 py-1 rounded-full bg-slate-900/80 border border-slate-700 ${visual.textColor}`}>
-                {visual.tag}
-              </span>
-              <span className="text-[10px] text-slate-400 mt-1">{visual.desc}</span>
-            </div>
-          )}
+          <ProductImage
+            src={product.imageUrl || product.image_url}
+            alt={product.name}
+            category={product.category}
+            brand={product.brand}
+            containerClassName="w-full h-full object-cover"
+          />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent pointer-events-none" />
           <span className="absolute top-3 left-3 bg-indigo-600/90 text-white text-[11px] font-bold px-2 py-0.5 rounded-lg backdrop-blur-sm shadow-md">
             {product.category}

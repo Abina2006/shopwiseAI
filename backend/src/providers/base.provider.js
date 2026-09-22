@@ -79,7 +79,8 @@ export class BaseProvider {
     // Determine realistic price range based on keywords
     let minPrice = 500;
     let maxPrice = 3000;
-    let imageUrl = "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=600"; // default generic product
+    // Default generic product image (shopping bag/cart instead of headphones)
+    let imageUrl = "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?q=80&w=600"; 
 
     if (q.includes('apple') || q.includes('iphone') || q.includes('mac') || q.includes('s24')) {
       minPrice = 50000; maxPrice = 150000;
@@ -92,7 +93,7 @@ export class BaseProvider {
       imageUrl = "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?q=80&w=600";
     } else if (q.includes('headphone') || q.includes('earbud') || q.includes('earphone') || q.includes('airpod')) {
       minPrice = 1500; maxPrice = 25000;
-      imageUrl = "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=600";
+      imageUrl = "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=600"; // Headphones
     } else if (q.includes('watch') || q.includes('smartwatch')) {
       minPrice = 2000; maxPrice = 35000;
       imageUrl = "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=600";
@@ -102,6 +103,15 @@ export class BaseProvider {
     } else if (q.includes('shirt') || q.includes('tshirt') || q.includes('clothing')) {
       minPrice = 300; maxPrice = 2000;
       imageUrl = "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=600";
+    } else if (q.includes('bottle') || q.includes('flask') || q.includes('water')) {
+      minPrice = 200; maxPrice = 1500;
+      imageUrl = "https://images.unsplash.com/photo-1602143407151-7111542de6e8?q=80&w=600"; // Water bottle
+    } else if (q.includes('bag') || q.includes('backpack')) {
+      minPrice = 500; maxPrice = 3000;
+      imageUrl = "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?q=80&w=600"; // Backpack
+    } else if (q.includes('coffee') || q.includes('maker') || q.includes('espresso')) {
+      minPrice = 1000; maxPrice = 15000;
+      imageUrl = "https://images.unsplash.com/photo-1517668808822-9ebb02f2a0e6?q=80&w=600"; // Coffee maker
     }
 
     const price = Math.floor(Math.random() * (maxPrice - minPrice)) + minPrice;

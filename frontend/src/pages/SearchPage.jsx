@@ -1,25 +1,21 @@
 import React, { useState, useEffect, useTransition } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
+import ProductCard from '../components/ProductCard';
 
 const POPULAR_QUERIES = [
-  'wireless headphones',
-  'smart watch',
-  'bluetooth speaker',
-  'gaming mouse',
-  'noise cancelling headphones',
-  'sneakers',
+  'iPhone 15',
+  'MacBook Air',
+  'Sony WH-1000XM5',
+  'boAt Airdopes',
+  'Samsung S24 Ultra',
+  'Smart Watch'
 ];
 
 const PLATFORM_ICONS = {
   amazon: '🛒',
   flipkart: '🛍️',
   meesho: '📦',
-};
-
-const PLATFORM_COLORS = {
-  amazon: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
-  flipkart: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
-  meesho: 'bg-pink-500/10 text-pink-400 border-pink-500/30',
+  croma: '🏪'
 };
 
 const API = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
@@ -33,8 +29,12 @@ export default function SearchPage() {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [selectedPlatform, setSelectedPlatform] = useState('all');
-  const [sortBy, setSortBy] = useState('lowest_price');
+  const [sortBy, setSortBy] = useState('relevance');
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'comparison'
+  const [activeBrands, setActiveBrands] = useState([]);
+  const [activeSpecs, setActiveSpecs] = useState([]);
+  const [maxPriceFilter, setMaxPriceFilter] = useState(null);
+  const [visibleCount, setVisibleCount] = useState(20);
   const [, startTransition] = useTransition();
 
   const handleSearch = async (searchTerm) => {
@@ -44,6 +44,10 @@ export default function SearchPage() {
     setLoading(true);
     setError(null);
     setSearchParams({ q });
+    setActiveBrands([]);
+    setActiveSpecs([]);
+    setMaxPriceFilter(null);
+    setVisibleCount(20);
 
     try {
       const res = await fetch(`${API}/products/search?q=${encodeURIComponent(q)}`);
@@ -66,31 +70,149 @@ export default function SearchPage() {
     }
   }, [initialQuery]);
 
-  // Flattened products with platform filter & sort
-  const getFilteredProducts = () => {
-    if (!data || !data.products) return [];
-    let list = [...data.products];
+  // Transform grouped product results for ProductCard consumption
+  const getDisplayProducts = () => {
+    if (!data) return [];
 
-    if (selectedPlatform !== 'all') {
-      list = list.filter(
-        p => (p.platform || '').toLowerCase() === selectedPlatform.toLowerCase()
-      );
+    // If groups exist, map each group into a full ProductCard object
+    if (data.groups && data.groups.length > 0) {
+      return data.groups.map(g => {
+        const canonical = g.canonical || {};
+        const listings = (g.dbListings || g.listings || []).map(l => ({
+          sellerName: l.platform || l.sellerName || 'Store',
+          price: l.price,
+          originalPrice: l.original_price || l.originalPrice,
+          discount: l.discount,
+          rating: l.rating,
+          reviewCount: l.review_count || l.reviewCount,
+          sellerUrl: l.product_url || l.sellerUrl,
+          availability: l.availability || 'In Stock'
+        })).filter(l => !isNaN(parseFloat(l.price)) && parseFloat(l.price) > 0);
+
+        const prices = listings.map(l => parseFloat(l.price)).filter(p => !isNaN(p) && p > 0);
+        const lowestPrice = prices.length ? Math.min(...prices) : (canonical.price || null);
+
+        return {
+          id: g.dbProduct?.id || canonical.id || canonical.product_name || canonical.name,
+          name: canonical.product_name || canonical.name || query,
+          brand: canonical.brand || 'Generic',
+          category: canonical.category || 'General',
+          imageUrl: canonical.image_url || canonical.imageUrl,
+          price: lowestPrice,
+          platform: listings[0]?.sellerName || 'Store',
+          listings
+        };
+      });
     }
 
-    if (sortBy === 'lowest_price') {
-      list.sort((a, b) => Number(a.price) - Number(b.price));
-    } else if (sortBy === 'highest_price') {
-      list.sort((a, b) => Number(b.price) - Number(a.price));
-    } else if (sortBy === 'highest_rating') {
-      list.sort((a, b) => (Number(b.rating) || 0) - (Number(a.rating) || 0));
-    } else if (sortBy === 'biggest_discount') {
-      list.sort((a, b) => (Number(b.discount_percentage) || 0) - (Number(a.discount_percentage) || 0));
+    // Fallback if individual products are returned
+    if (data.products && data.products.length > 0) {
+      return data.products.map(p => ({
+        id: p.id || p.product_name || p.name,
+        name: p.product_name || p.name,
+        brand: p.brand || 'Generic',
+        category: p.category || 'General',
+        imageUrl: p.image_url || p.imageUrl,
+        price: p.price,
+        platform: p.platform,
+        listings: [
+          {
+            sellerName: p.platform || 'Store',
+            price: p.price,
+            originalPrice: p.original_price,
+            discount: p.discount,
+            rating: p.rating,
+            reviewCount: p.review_count,
+            sellerUrl: p.product_url,
+            availability: p.availability
+          }
+        ]
+      }));
     }
 
-    return list;
+    return [];
   };
 
-  const filteredProducts = getFilteredProducts();
+  const displayProducts = getDisplayProducts().filter(p => p.listings && p.listings.length > 0);
+
+  // Extract dynamic filters from all available results
+  const filterMetadata = React.useMemo(() => {
+    const brands = new Set();
+    const specs = new Set();
+    let maxP = 0;
+
+    displayProducts.forEach(p => {
+      if (p.brand && p.brand !== 'Generic') brands.add(p.brand);
+      if (p.price && p.price > maxP) maxP = p.price;
+      
+      const tokens = (p.name || '').toUpperCase().split(/[\s,]+/);
+      tokens.forEach(t => {
+        if (t.match(/^\d+(GB|TB|MB)$/) || t === '5G' || t === '4G') {
+          specs.add(t);
+        }
+      });
+    });
+
+    return {
+      brands: Array.from(brands).sort(),
+      specs: Array.from(specs).sort(),
+      maxPrice: Math.ceil(maxP)
+    };
+  }, [displayProducts]);
+
+  // Filter & sort
+  const filteredProducts = displayProducts.filter(p => {
+    // 1. Platform filter
+    if (selectedPlatform !== 'all') {
+      const hasPlatform = (p.listings || []).some(
+        l => (l.sellerName || '').toLowerCase() === selectedPlatform.toLowerCase()
+      );
+      if (!hasPlatform) return false;
+    }
+
+    // 2. Brand filter
+    if (activeBrands.length > 0 && !activeBrands.includes(p.brand)) {
+      return false;
+    }
+
+    // 3. Specs filter
+    if (activeSpecs.length > 0) {
+      const pName = (p.name || '').toUpperCase();
+      const hasSpec = activeSpecs.some(spec => pName.includes(spec));
+      if (!hasSpec) return false;
+    }
+
+    // 4. Price filter
+    if (maxPriceFilter !== null && p.price > maxPriceFilter) {
+      return false;
+    }
+
+    return true;
+  }).sort((a, b) => {
+    if (sortBy === 'relevance') return 0; // Default backend order
+    if (sortBy === 'lowest_price') return (Number(a.price) || 0) - (Number(b.price) || 0);
+    if (sortBy === 'highest_price') return (Number(b.price) || 0) - (Number(a.price) || 0);
+    
+    // Sort by rating (using the highest rating among listings)
+    if (sortBy === 'highest_rating') {
+      const getHighestRating = (p) => Math.max(0, ...p.listings.map(l => Number(l.rating) || 0));
+      return getHighestRating(b) - getHighestRating(a);
+    }
+
+    // Sort by reviews (using the sum of reviews across listings)
+    if (sortBy === 'most_reviews') {
+      const getTotalReviews = (p) => p.listings.reduce((sum, l) => sum + (Number(l.reviewCount) || 0), 0);
+      return getTotalReviews(b) - getTotalReviews(a);
+    }
+
+    // Sort by price drop (discount percentage)
+    if (sortBy === 'biggest_drop') {
+      const getHighestDiscount = (p) => Math.max(0, ...p.listings.map(l => parseInt((l.discount || '0').replace(/\D/g, '')) || 0));
+      return getHighestDiscount(b) - getHighestDiscount(a);
+    }
+
+    return 0;
+  });
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 py-8 px-4 sm:px-6 lg:px-8">
@@ -108,7 +230,7 @@ export default function SearchPage() {
             </span>
           </h1>
           <p className="text-slate-400 max-w-2xl mx-auto text-sm sm:text-base">
-            Search any product to aggregate normalized pricing, stock status, ratings, and delivery estimates across top Indian marketplaces — completely compliant with zero illegal scraping.
+            Search any product and discover real products from Amazon, Flipkart, and Meesho. Compare prices, ratings, availability, and offers in one place.
           </p>
         </div>
 
@@ -126,26 +248,18 @@ export default function SearchPage() {
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="e.g. wireless headphones, smart watch, bluetooth speaker..."
+              placeholder="e.g. iPhone 15, MacBook Air, Sony headphones, boAt earbuds..."
               className="w-full bg-transparent px-4 py-4 text-slate-100 placeholder-slate-500 text-base focus:outline-none"
             />
-            {query && (
-              <button
-                type="button"
-                onClick={() => setQuery('')}
-                className="px-2 text-slate-500 hover:text-slate-300 text-sm"
-              >
-                ✕
-              </button>
-            )}
             <button
               type="submit"
-              disabled={loading || !query.trim()}
-              className="m-2 px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-white text-sm shadow-lg shadow-indigo-500/25 transition-all flex items-center gap-2"
+              disabled={loading}
+              className="m-2 px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-800 text-white font-bold text-sm transition-all shadow-lg shadow-indigo-600/30 flex items-center gap-2 whitespace-nowrap"
             >
               {loading ? (
                 <>
-                  <span className="animate-spin text-sm">⏳</span> Searching...
+                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                  Searching...
                 </>
               ) : (
                 <>Compare Prices 🚀</>
@@ -155,7 +269,7 @@ export default function SearchPage() {
 
           {/* Quick Filter Tags */}
           <div className="flex flex-wrap items-center justify-center gap-2 mt-4 text-xs">
-            <span className="text-slate-400 font-medium">Try searching:</span>
+            <span className="text-slate-400 font-medium">Popular:</span>
             {POPULAR_QUERIES.map((tag) => (
               <button
                 key={tag}
@@ -172,34 +286,75 @@ export default function SearchPage() {
           </div>
         </div>
 
+        {/* Loading State with Progressive Status and Skeleton Cards */}
+        {loading && (
+          <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-200">
+            <div className="p-4 rounded-2xl bg-indigo-950/40 border border-indigo-500/30 text-center space-y-2.5 shadow-xl">
+              <div className="flex items-center justify-center gap-2 text-indigo-300 font-bold text-sm">
+                <span className="animate-spin">🔄</span>
+                <span>Searching marketplaces for &quot;{query}&quot;...</span>
+              </div>
+              <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-slate-400">
+                <span className="flex items-center gap-1.5 font-medium">
+                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                  Searching Amazon...
+                </span>
+                <span className="flex items-center gap-1.5 font-medium">
+                  <span className="w-2 h-2 rounded-full bg-blue-400 animate-ping" />
+                  Searching Flipkart...
+                </span>
+                <span className="flex items-center gap-1.5 font-medium">
+                  <span className="w-2 h-2 rounded-full bg-pink-400 animate-ping" />
+                  Searching Meesho...
+                </span>
+              </div>
+            </div>
+
+            {/* Skeleton Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3].map((idx) => (
+                <div key={idx} className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 space-y-4 animate-pulse">
+                  <div className="w-full h-48 bg-slate-800 rounded-xl" />
+                  <div className="h-4 bg-slate-800 rounded w-4/5" />
+                  <div className="h-3 bg-slate-800 rounded w-1/2" />
+                  <div className="h-7 bg-slate-800 rounded w-1/3" />
+                  <div className="h-16 bg-slate-800/60 rounded-xl" />
+                  <div className="grid grid-cols-2 gap-2 pt-2">
+                    <div className="h-9 bg-slate-800 rounded-xl" />
+                    <div className="h-9 bg-slate-800 rounded-xl" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Provider Live Status Bar */}
-        {data?.sources && (
-          <div className="max-w-3xl mx-auto flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-slate-900/60 border border-slate-800 text-xs">
+        {!loading && data?.sources && (
+          <div className="max-w-4xl mx-auto flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-slate-900/60 border border-slate-800 text-xs">
             <div className="flex items-center gap-2 text-slate-400">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span>Supported Marketplaces:</span>
+              <span>Marketplaces Status:</span>
             </div>
             <div className="flex items-center gap-4">
-              {Object.entries(data.sources)
-                .filter(([platform]) => data.products.some(p => p.platform.toLowerCase() === platform.toLowerCase()))
-                .map(([platform, status]) => (
+              {Object.entries(data.sources).map(([platform, status]) => (
                 <div key={platform} className="flex items-center gap-1.5 capitalize font-medium">
                   <span>{PLATFORM_ICONS[platform.toLowerCase()] || '🏬'}</span>
                   <span className="text-slate-200">{platform}</span>
                   {status === 'success' || status === 'ready' ? (
                     <span className="text-emerald-400 text-[11px] bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
-                      ✓ Connected
+                      ✓ Active
                     </span>
                   ) : (
-                    <span className="text-rose-400 text-[11px] bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/20">
-                      Offline
+                    <span className="text-slate-400 text-[11px] bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700">
+                      Unavailable
                     </span>
                   )}
                 </div>
               ))}
             </div>
-            <div className="text-slate-400">
-              Found <strong className="text-indigo-400">{data.totalResults}</strong> listings
+            <div className="text-slate-400 font-medium">
+              Found <strong className="text-indigo-400">{displayProducts.length}</strong> matched product{displayProducts.length !== 1 ? 's' : ''}
             </div>
           </div>
         )}
@@ -209,25 +364,25 @@ export default function SearchPage() {
           <div className="max-w-3xl mx-auto p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm flex items-center gap-3">
             <span className="text-xl">⚠️</span>
             <div>
-              <p className="font-semibold">Search Error</p>
+              <p className="font-semibold">Search Notice</p>
               <p className="text-xs text-rose-400/90">{error}</p>
             </div>
           </div>
         )}
 
         {/* Filter & View Mode Bar */}
-        {data && data.products && data.products.length > 0 && (
+        {!loading && displayProducts.length > 0 && (
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-2 border-b border-slate-800">
             {/* Platform Filter Buttons */}
             <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
-              <span className="text-xs text-slate-400 font-medium mr-1">Platform:</span>
-              {['all', ...Array.from(new Set(data.products.map(p => p.platform.toLowerCase())))].map((plat) => (
+              <span className="text-xs text-slate-400 font-medium mr-1">Filter Store:</span>
+              {['all', 'Amazon', 'Flipkart', 'Meesho', 'Croma'].map((plat) => (
                 <button
                   key={plat}
                   type="button"
                   onClick={() => setSelectedPlatform(plat)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all ${
-                    selectedPlatform === plat
+                    selectedPlatform.toLowerCase() === plat.toLowerCase()
                       ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
                       : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700/80 border border-slate-700/60'
                   }`}
@@ -237,17 +392,19 @@ export default function SearchPage() {
               ))}
             </div>
 
-            {/* Sort & View Mode controls */}
+            {/* Sort controls */}
             <div className="flex items-center gap-3 self-end sm:self-auto">
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
                 className="bg-slate-800 text-xs text-slate-200 border border-slate-700 rounded-lg px-3 py-1.5 focus:outline-none focus:border-indigo-500"
               >
+                <option value="relevance">Sort by: Relevance</option>
                 <option value="lowest_price">Price: Low to High</option>
                 <option value="highest_price">Price: High to Low</option>
-                <option value="highest_rating">Highest Rated</option>
-                <option value="biggest_discount">Biggest Discount</option>
+                <option value="highest_rating">Highest Rating</option>
+                <option value="most_reviews">Most Reviews</option>
+                <option value="biggest_drop">Biggest Price Drop</option>
               </select>
 
               <div className="flex bg-slate-800 p-0.5 rounded-lg border border-slate-700 text-xs">
@@ -259,7 +416,7 @@ export default function SearchPage() {
                   }`}
                   title="Card Grid View"
                 >
-                  ▦ Grid
+                  ▦ Cards
                 </button>
                 <button
                   type="button"
@@ -269,295 +426,190 @@ export default function SearchPage() {
                   }`}
                   title="Side-by-Side Comparison Table"
                 >
-                  ☵ Compare Table
+                  ☵ Table
                 </button>
               </div>
             </div>
           </div>
         )}
 
+        {/* Dynamic Category Filters */}
+        {!loading && displayProducts.length > 0 && (filterMetadata.brands.length > 0 || filterMetadata.specs.length > 0) && (
+          <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-800 space-y-4">
+            <h3 className="text-sm font-semibold text-slate-300">Refine Search</h3>
+            
+            {filterMetadata.brands.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs text-slate-400 font-medium">Brands</p>
+                <div className="flex flex-wrap gap-2">
+                  {filterMetadata.brands.map(brand => (
+                    <label key={brand} className="flex items-center gap-1.5 text-xs text-slate-300 bg-slate-800/80 px-2.5 py-1 rounded-md border border-slate-700 cursor-pointer hover:bg-slate-700 transition-colors">
+                      <input 
+                        type="checkbox" 
+                        checked={activeBrands.includes(brand)}
+                        onChange={(e) => {
+                          if (e.target.checked) setActiveBrands([...activeBrands, brand]);
+                          else setActiveBrands(activeBrands.filter(b => b !== brand));
+                        }}
+                        className="rounded border-slate-600 bg-slate-700 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-slate-800"
+                      />
+                      {brand}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {filterMetadata.specs.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs text-slate-400 font-medium">Specifications</p>
+                <div className="flex flex-wrap gap-2">
+                  {filterMetadata.specs.map(spec => (
+                    <label key={spec} className="flex items-center gap-1.5 text-xs text-slate-300 bg-slate-800/80 px-2.5 py-1 rounded-md border border-slate-700 cursor-pointer hover:bg-slate-700 transition-colors">
+                      <input 
+                        type="checkbox" 
+                        checked={activeSpecs.includes(spec)}
+                        onChange={(e) => {
+                          if (e.target.checked) setActiveSpecs([...activeSpecs, spec]);
+                          else setActiveSpecs(activeSpecs.filter(s => s !== spec));
+                        }}
+                        className="rounded border-slate-600 bg-slate-700 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-slate-800"
+                      />
+                      {spec}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Side-by-Side Comparison Groups View */}
-        {data && data.groups && data.groups.length > 0 && viewMode === 'comparison' && (
-          <div className="space-y-8">
+        {!loading && displayProducts.length > 0 && viewMode === 'comparison' && (
+          <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-slate-100 flex items-center gap-2">
-                <span>⚖️</span> Direct Cross-Platform Side-by-Side Comparison
+              <h2 className="text-lg font-bold text-slate-100 flex items-center gap-2">
+                <span>⚖️</span> Multi-Marketplace Side-by-Side Comparison Table
               </h2>
-              <span className="text-xs text-slate-400">
-                {data.groups.length} distinct product{data.groups.length > 1 ? 's' : ''} matched across stores
-              </span>
             </div>
 
-            {data.groups.map((grp, idx) => {
-              const lowestPrice = Math.min(...grp.listings.map(l => Number(l.price)));
-              const highestPrice = Math.max(...grp.listings.map(l => Number(l.price)));
-              const maxSavings = highestPrice - lowestPrice;
-
-              return (
-                <div
-                  key={idx}
-                  className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4"
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-semibold px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                          {grp.canonical.brand || 'Verified'}
-                        </span>
-                        <h3 className="text-lg font-bold text-slate-100">
-                          {grp.canonical.name}
-                        </h3>
-                      </div>
-                      <p className="text-xs text-slate-400 mt-0.5">
-                        Available on {grp.listings.length} marketplace{grp.listings.length > 1 ? 's' : ''}
-                      </p>
-                    </div>
-
-                    {maxSavings > 0 && (
-                      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold self-start sm:self-auto">
-                        <span>💰</span> Save up to ₹{Math.round(maxSavings).toLocaleString('en-IN')} by picking the best store!
-                      </div>
-                    )}
+            {filteredProducts.slice(0, visibleCount).map((prod, idx) => (
+              <div key={idx} className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                  <div>
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                      {prod.brand}
+                    </span>
+                    <h3 className="text-base font-bold text-slate-100 mt-1">{prod.name}</h3>
                   </div>
+                  <Link
+                    to={`/product/${prod.id}`}
+                    className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 underline self-start sm:self-auto"
+                  >
+                    View Full Product Details →
+                  </Link>
+                </div>
 
-                  {/* Horizontal Marketplace Comparison Table */}
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs border-collapse">
-                      <thead>
-                        <tr className="border-b border-slate-800 text-slate-400 font-semibold">
-                          <th className="pb-3 pl-2">Platform</th>
-                          <th className="pb-3">Price & Savings</th>
-                          <th className="pb-3">Rating & Reviews</th>
-                          <th className="pb-3">Delivery Speed</th>
-                          <th className="pb-3">Stock Status</th>
-                          <th className="pb-3 text-right pr-2">Action</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-800/60">
-                        {grp.listings.map((item, lIdx) => {
-                          const isLowest = Number(item.price) === lowestPrice;
-                          const diff = Number(item.price) - lowestPrice;
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-800 text-slate-400 font-semibold">
+                        <th className="pb-2.5 pl-2">Marketplace</th>
+                        <th className="pb-2.5">Live Price</th>
+                        <th className="pb-2.5">Rating</th>
+                        <th className="pb-2.5">Availability</th>
+                        <th className="pb-2.5 text-right pr-2">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/60">
+                      {(prod.listings || []).map((item, lIdx) => {
+                        const itemPrice = parseFloat(item.price);
+                        const isLowest = !isNaN(itemPrice) && itemPrice === prod.price;
 
-                          return (
-                            <tr
-                              key={lIdx}
-                              className={`hover:bg-slate-800/40 transition-colors ${
-                                isLowest ? 'bg-emerald-500/5' : ''
-                              }`}
-                            >
-                              <td className="py-3.5 pl-2 font-medium">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-base">{PLATFORM_ICONS[item.platform.toLowerCase()] || '🏬'}</span>
-                                  <span className="capitalize font-semibold text-slate-200">{item.platform}</span>
-                                  {isLowest && (
-                                    <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-emerald-500 text-slate-950">
-                                      ★ Lowest Price
-                                    </span>
-                                  )}
-                                </div>
-                              </td>
-
-                              <td className="py-3.5">
-                                <div className="space-y-0.5">
-                                  <div className="text-sm font-bold text-slate-100">
-                                    ₹{Math.round(Number(item.price)).toLocaleString('en-IN')}
-                                  </div>
-                                  {item.discount_percentage > 0 && (
-                                    <span className="text-[11px] font-semibold text-emerald-400">
-                                      {item.discount_percentage}% off
-                                    </span>
-                                  )}
-                                  {diff > 0 && (
-                                    <div className="text-[10px] text-rose-400">
-                                      +₹{Math.round(diff).toLocaleString('en-IN')} higher
-                                    </div>
-                                  )}
-                                </div>
-                              </td>
-
-                              <td className="py-3.5">
-                                <div className="flex items-center gap-1">
-                                  <span className="text-amber-400">★</span>
-                                  <span className="font-semibold text-slate-200">{item.rating || '4.0'}</span>
-                                  <span className="text-slate-500 text-[11px]">
-                                    ({Number(item.review_count || 0).toLocaleString('en-IN')})
-                                  </span>
-                                </div>
-                              </td>
-
-                              <td className="py-3.5 text-slate-300">
-                                🚚 {item.delivery_info || '2-4 Days'}
-                              </td>
-
-                              <td className="py-3.5">
-                                {item.in_stock ? (
-                                  <span className="inline-flex items-center gap-1 text-emerald-400 font-medium">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> In Stock
-                                  </span>
-                                ) : (
-                                  <span className="text-rose-400 font-medium">Out of Stock</span>
-                                )}
-                              </td>
-
-                              <td className="py-3.5 text-right pr-2">
+                        return (
+                          <tr key={lIdx} className={isLowest ? 'bg-emerald-500/5 font-semibold' : ''}>
+                            <td className="py-3 pl-2 font-medium flex items-center gap-2">
+                              <span>{PLATFORM_ICONS[item.sellerName?.toLowerCase()] || '🏬'}</span>
+                              <span className="text-slate-200">{item.sellerName}</span>
+                              {isLowest && (
+                                <span className="text-[9px] bg-emerald-500 text-slate-950 px-1.5 py-0.5 rounded-full font-extrabold uppercase">
+                                  ★ Lowest
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-3">
+                              {!isNaN(itemPrice) && itemPrice > 0 ? (
+                                <span className={isLowest ? 'text-emerald-400 text-sm font-bold' : 'text-slate-200'}>
+                                  ₹{itemPrice.toLocaleString('en-IN')}
+                                </span>
+                              ) : (
+                                <span className="text-slate-500">Price unavailable</span>
+                              )}
+                            </td>
+                            <td className="py-3 text-slate-300">
+                              ⭐ {item.rating || '4.4'}
+                            </td>
+                            <td className="py-3 text-slate-300">
+                              {item.availability || 'In Stock'}
+                            </td>
+                            <td className="py-3 text-right pr-2">
+                              {item.sellerUrl ? (
                                 <a
-                                  href={item.product_url}
+                                  href={item.sellerUrl}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className={`inline-flex items-center gap-1 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                                    isLowest
-                                      ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/30'
-                                      : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
-                                  }`}
+                                  className="px-3 py-1 rounded-lg bg-indigo-600/80 hover:bg-indigo-600 text-white font-semibold text-[11px] transition-all"
                                 >
-                                  View on {item.platform} ↗
+                                  Visit Store ↗
                                 </a>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
+                              ) : (
+                                <span className="text-slate-600 text-[11px]">N/A</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         )}
 
         {/* Product Cards Grid View */}
-        {data && filteredProducts.length > 0 && viewMode === 'grid' && (
+        {!loading && filteredProducts.length > 0 && viewMode === 'grid' && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredProducts.map((p, index) => {
-              const platformKey = (p.platform || '').toLowerCase();
-              const badgeStyle = PLATFORM_COLORS[platformKey] || 'bg-slate-800 text-slate-300 border-slate-700';
-
-              return (
-                <div
-                  key={index}
-                  className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 hover:border-slate-700 transition-all hover:shadow-xl hover:shadow-indigo-500/5 flex flex-col justify-between group"
-                >
-                  <div className="space-y-4">
-                    {/* Image & Platform Badges */}
-                    <div className="relative aspect-video sm:aspect-square w-full rounded-xl bg-slate-800/60 overflow-hidden flex items-center justify-center border border-slate-800">
-                      {p.image_url ? (
-                        <img
-                          src={p.image_url}
-                          alt={p.name}
-                          className="w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-300"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <span className="text-4xl text-slate-600">📦</span>
-                      )}
-
-                      {/* Store Badge */}
-                      <div className={`absolute top-3 left-3 px-2.5 py-1 rounded-lg text-xs font-bold border capitalize flex items-center gap-1.5 shadow-md ${badgeStyle}`}>
-                        <span>{PLATFORM_ICONS[platformKey] || '🏬'}</span>
-                        <span>{p.platform}</span>
-                      </div>
-
-                      {/* Discount Badge */}
-                      {p.discount_percentage > 0 && (
-                        <div className="absolute top-3 right-3 px-2 py-0.5 rounded-md bg-emerald-500 text-slate-950 text-xs font-black shadow-md">
-                          {p.discount_percentage}% OFF
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Title & Brand */}
-                    <div>
-                      {p.brand && (
-                        <span className="text-[11px] font-semibold uppercase tracking-wider text-indigo-400">
-                          {p.brand}
-                        </span>
-                      )}
-                      <h3 className="font-semibold text-slate-100 text-sm line-clamp-2 mt-0.5 leading-snug">
-                        {p.name}
-                      </h3>
-                    </div>
-
-                    {/* Rating & Stock */}
-                    <div className="flex items-center justify-between text-xs pt-1">
-                      <div className="flex items-center gap-1 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded text-amber-400 font-semibold">
-                        <span>★</span>
-                        <span>{p.rating || '4.2'}</span>
-                        <span className="text-slate-500 font-normal">
-                          ({Number(p.review_count || 0).toLocaleString('en-IN')})
-                        </span>
-                      </div>
-
-                      <div className="text-slate-400 text-xs flex items-center gap-1">
-                        🚚 {p.delivery_info || '2-3 Days'}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Price & Action Button */}
-                  <div className="pt-5 mt-4 border-t border-slate-800 flex items-center justify-between gap-3">
-                    <div>
-                      <div className="text-xl font-extrabold text-slate-100">
-                        ₹{Math.round(Number(p.price)).toLocaleString('en-IN')}
-                      </div>
-                      <div className="text-[10px] text-slate-400">
-                        {p.currency || 'INR'} • Best Price
-                      </div>
-                    </div>
-
-                    <a
-                      href={p.product_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition-all shadow-md shadow-indigo-600/20 flex items-center gap-1"
-                    >
-                      Buy on {p.platform} ↗
-                    </a>
-                  </div>
-                </div>
-              );
-            })}
+            {filteredProducts.slice(0, visibleCount).map((p, index) => (
+              <ProductCard
+                key={p.id || index}
+                product={p}
+                showComparison={true}
+              />
+            ))}
           </div>
         )}
 
-        {/* Empty State when searched but nothing returned */}
-        {data && filteredProducts.length === 0 && !loading && (
+        {/* Load More Button */}
+        {!loading && filteredProducts.length > visibleCount && (
+          <div className="text-center pt-8 pb-4">
+            <button
+              onClick={() => setVisibleCount(prev => prev + 20)}
+              className="px-6 py-2.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium text-sm transition-colors border border-slate-700"
+            >
+              Load More Products ({filteredProducts.length - visibleCount} remaining)
+            </button>
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!loading && data && filteredProducts.length === 0 && (
           <div className="text-center py-16 bg-slate-900/40 rounded-2xl border border-slate-800 space-y-3">
             <span className="text-4xl">🔍</span>
-            <h3 className="text-lg font-bold text-slate-200">No products found</h3>
+            <h3 className="text-lg font-bold text-slate-200">No matching products found.</h3>
             <p className="text-sm text-slate-400 max-w-md mx-auto">
-              We couldn't find matching products for &quot;{query}&quot; on {selectedPlatform === 'all' ? 'any platform' : selectedPlatform}. Try searching for generic items like &quot;headphones&quot;, &quot;mouse&quot;, or &quot;watch&quot;.
+              We couldn&apos;t find matching products for &quot;{query}&quot; on {selectedPlatform === 'all' ? 'the selected marketplaces' : selectedPlatform}. Try searching for &quot;iPhone 15&quot;, &quot;Sony headphones&quot;, or &quot;boAt&quot;.
             </p>
-          </div>
-        )}
-
-        {/* Initial Empty State before user searches */}
-        {!data && !loading && (
-          <div className="py-16 text-center space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-4xl mx-auto">
-              <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 text-left space-y-2">
-                <span className="text-3xl">🛡️</span>
-                <h4 className="font-bold text-slate-100 text-sm">Compliant & Legal</h4>
-                <p className="text-xs text-slate-400">
-                  Zero aggressive scraping or CAPTCHA bypass. Uses authorized affiliate APIs and clean mock adapters.
-                </p>
-              </div>
-
-              <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 text-left space-y-2">
-                <span className="text-3xl">⚡</span>
-                <h4 className="font-bold text-slate-100 text-sm">Parallel Fan-Out</h4>
-                <p className="text-xs text-slate-400">
-                  Queries Amazon, Flipkart, and Meesho simultaneously in milliseconds using Promise.allSettled.
-                </p>
-              </div>
-
-              <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 text-left space-y-2">
-                <span className="text-3xl">📊</span>
-                <h4 className="font-bold text-slate-100 text-sm">Normalized Structure</h4>
-                <p className="text-xs text-slate-400">
-                  Every product from all stores is deduplicated and standardized for instant side-by-side comparison.
-                </p>
-              </div>
-            </div>
           </div>
         )}
 
