@@ -79,8 +79,10 @@ export class BaseProvider {
     // Determine realistic price range based on keywords
     let minPrice = 500;
     let maxPrice = 3000;
-    // Default generic product image (shopping bag/cart instead of headphones)
-    let imageUrl = "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?q=80&w=600"; 
+    
+    // Default generic product image: Uses placehold.co to generate a clean image with the exact product name
+    const fallbackText = query.substring(0, 15);
+    let imageUrl = `https://placehold.co/600x600/2c3e50/ecf0f1?text=${encodeURIComponent(fallbackText)}`; 
 
     if (q.includes('apple') || q.includes('iphone') || q.includes('mac') || q.includes('s24')) {
       minPrice = 50000; maxPrice = 150000;
